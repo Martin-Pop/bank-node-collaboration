@@ -49,6 +49,8 @@ class ConfigurationManager:
         :param config: config to validate
         """
 
+        #TODO: add validation for the rest.
+
         required_keys = ["host", "port"]
 
         missing_keys = [key for key in required_keys if key not in config]

@@ -1,6 +1,7 @@
 import logging
 from logger.configure import configure_logger_queue, add_queue_handler_to_root
 from config import ConfigurationManager
+from core.storages import prepare_storage_structure
 
 if __name__ == "__main__":
 
@@ -15,9 +16,11 @@ if __name__ == "__main__":
         if not config:
             exit(1)
 
-        log.info('Configuration loaded')
+        success = prepare_storage_structure(config["storage"])
+        if not success:
+            exit(1)
 
-    #open bank here
+        #open bank here
 
     finally:
         listener.stop()
