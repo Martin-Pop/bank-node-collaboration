@@ -1,7 +1,10 @@
 import logging
 import json
 import ipaddress
-log = logging.getLogger('SYSTEM')
+
+from logger.types import LOG_TYPES
+
+log = logging.getLogger(LOG_TYPES.SYSTEM)
 
 class InvalidConfiguration(Exception):
     pass
