@@ -1,7 +1,5 @@
 import logging
-
 from logger.configure import configure_logger_queue, add_queue_handler_to_root
-from logger.types import LOG_TYPES
 from config import ConfigurationManager
 
 if __name__ == "__main__":
@@ -10,12 +8,16 @@ if __name__ == "__main__":
     add_queue_handler_to_root(log_queue)
     listener.start()
 
-    log = logging.getLogger(LOG_TYPES.SYSTEM)
+    log = logging.getLogger("SYSTEM")
+    try:
+        config_manager = ConfigurationManager("config/config.json")
+        config = config_manager.get_config()
+        if not config:
+            exit(1)
 
-    config_manager = ConfigurationManager("config/config.json")
-    config = config_manager.get_config()
-    if not config:
-        exit(1)
+        log.info('Configuration loaded')
 
-    log.info('Configuration loaded')
-    listener.stop()
+    #open bank here
+
+    finally:
+        listener.stop()

@@ -3,7 +3,7 @@ import sys
 from logging.handlers import QueueListener, QueueHandler
 from multiprocessing import Queue
 
-LOG_FORMAT = "%(asctime)s | P:%(process)d | %(name)-10s | %(levelname)-8s | %(message)s"
+LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | P:%(process)d | %(message)s"
 
 
 def configure_logger_queue(file_path: str = 'app.log', suppress_console: bool = False) -> tuple:
