@@ -3,7 +3,7 @@ import socket
 from multiprocessing import Queue, Manager
 
 from core.gateway import Gateway
-from core.storages import BankCacheStorage, BankPersistentStorage
+from core.storages import BankCacheStorage, BankPersistentStorage, prepare_storage_structure, load_data_to_shared_memory
 from workers.worker_manager import WorkerManager
 
 log = logging.getLogger("BANK")
@@ -17,29 +17,37 @@ class Bank:
         shared_memory = manager.dict()
 
         self._cache_storage = BankCacheStorage(shared_memory)
-        self._persistent_storage = BankPersistentStorage(self._config["storage"], self._config["storage"])
-
+        self._persistent_storage = BankPersistentStorage(self._config["storage"], self._config["storage_timeout"])
         self._gateway = Gateway(self._config["host"], self._config["port"])
-        self._worker_manager = WorkerManager()
+        self._worker_manager = WorkerManager(self._config, self._log_queue, self._cache_storage)
+
+        success = prepare_storage_structure(self._config["storage"])
+        if not success:
+            exit(1)
+
+        success = load_data_to_shared_memory(self._config["storage"], shared_memory)
+        if not success:
+            exit(1)
+
+        log.info("Bank initialized")
 
 
     def open_bank(self):
-        # 1. check persistent storage
-        # 2. load cache storage
-        # 3. initialize workers through worker manager
-        # 4. open gateway
-        # 5. listen for clients and pass them to worker manager
+        try:
 
-        self._worker_manager.start_workers()
+            self._worker_manager.create_workers()
+            self._worker_manager.start_workers()
 
-        server_socket = self._gateway.open()
-        self._start_listening_for_clients(server_socket)
+            server_socket = self._gateway.open()
+            self._start_listening_for_clients(server_socket)
+        except BaseException as e: #fallback
+            log.critical(e)
 
     def _start_listening_for_clients(self, server_socket: socket.socket):
         while True:
             client_socket, client_address = server_socket.accept()
 
             #security here
-
+            self._worker_manager.distribute_socket(client_socket)
 
 
