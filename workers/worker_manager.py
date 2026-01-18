@@ -38,6 +38,10 @@ class WorkerManager:
         for worker in self._workers:
             worker.start()
 
+    def stop_workers(self):
+        for pipe in self._worker_pipes:
+            pipe.send(None)
+
     def distribute_socket(self, client_socket: socket.socket):
         try:
             self._worker_pipes[self._worker_index].send(client_socket)

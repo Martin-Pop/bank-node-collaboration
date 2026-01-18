@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from multiprocessing import Queue, Process
 from multiprocessing.connection import PipeConnection
 
+from core.client import ClientConnection, ClientContext
 from core.storages import BankCacheStorage, BankPersistentStorage
 from logger.configure import add_queue_handler_to_root
 
@@ -51,16 +52,23 @@ class Worker(Process):
 
 
     def _accept_clients(self):
-        self._log.info("Accepting clients from worker")
         while True:
             try:
                 client_socket = self._pipe.recv()
-                self._log.info("new data lol")
-                self._log.info(client_socket)
+
                 # None closes worker
                 if client_socket is None:
                     break
 
-                client_socket.send("Hello world".encode())
+                context = ClientContext(
+                    socket=client_socket,
+                    config=self._configuration,
+                    executor=None,
+                    parser=None
+                )
+
+                client = ClientConnection(context)
+                client.start()
+
             except KeyboardInterrupt:
                 break

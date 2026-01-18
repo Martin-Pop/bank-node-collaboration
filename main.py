@@ -24,7 +24,6 @@ if __name__ == "__main__":
         bank = Bank(config, log_queue)
         bank.open_bank()
 
-        #open bank here
     except KeyboardInterrupt:
         exit(1)
 
