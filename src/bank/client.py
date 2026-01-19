@@ -40,8 +40,9 @@ class ClientConnection(Thread):
                 code, args = parse_command(message)
                 cmd = self._factory.create(code, *args)
                 if cmd is None:
-                    continue
-                response = cmd.execute()
+                    response = "ER Invalid command"
+                else:
+                    response = cmd.execute()
 
                 self._socket.sendall(f"{response}\r\n".encode('utf-8'))
 

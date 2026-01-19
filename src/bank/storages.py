@@ -35,9 +35,10 @@ class BankPersistentStorage:
                 self._connection.commit()
 
                 account_number = candidate
+                break
             except sqlite3.IntegrityError:
-             log.warning(f"Collision detected for {candidate}")
-            continue
+                log.warning(f"Collision detected for {candidate}")
+                continue
 
         return account_number
 

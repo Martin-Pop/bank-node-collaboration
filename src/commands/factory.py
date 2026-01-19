@@ -8,7 +8,7 @@ def parse_command(message: str):
     if not parts:
         return 'ER', ()
 
-    return parts[0], tuple(parts[1:])
+    return parts[0].strip().upper(), parts[1:]
 
 
 class CommandFactory:
