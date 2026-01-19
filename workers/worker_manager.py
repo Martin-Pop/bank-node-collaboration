@@ -1,18 +1,20 @@
 import socket
 from multiprocessing import Queue, Pipe
 
+from commands.factory import CommandFactory
 from core.storages import BankCacheStorage
 from workers.worker import WorkerContext, Worker
 
 
 class WorkerManager:
 
-    def __init__(self, config: dict, log_queue: Queue, bank_cache_storage: BankCacheStorage):
+    def __init__(self, config: dict, log_queue: Queue, bank_cache_storage: BankCacheStorage, command_factory: CommandFactory):
 
         self._config = config
         self._worker_count = config["bank_workers"]
         self._log_queue = log_queue
         self._bank_cache_storage = bank_cache_storage
+        self._command_factory = command_factory
 
         self._workers = []
         self._worker_pipes = []
@@ -27,7 +29,8 @@ class WorkerManager:
                 bank_cache=self._bank_cache_storage,
                 log_queue=self._log_queue,
                 pipe=child_connection,
-                config=self._config
+                config=self._config,
+                factory=self._command_factory
             )
 
             worker = Worker(context)

@@ -3,14 +3,15 @@ from threading import Thread
 from dataclasses import dataclass
 import socket
 
+from commands.factory import CommandFactory, parse_command
+
 log = logging.getLogger('WORKER')
 
 @dataclass
 class ClientContext:
     socket: socket.socket
     config: dict
-    parser: None
-    executor: None
+    factory: CommandFactory
 
 class ClientConnection(Thread):
 
@@ -19,18 +20,17 @@ class ClientConnection(Thread):
 
         self._socket = context.socket
         self._configuration = context.config
-
-        self._command_parser = context.parser
-        self._command_executor = context.executor
+        self._factory = context.factory
 
         self.daemon = True
 
     def run(self):
         try:
-            self._socket.settimeout(5)  # load this
+            self._socket.settimeout(60)  # load this
 
             while True:
                 data = self._socket.recv(1024)
+                print(data)
                 if not data:
                     break
 
@@ -38,7 +38,11 @@ class ClientConnection(Thread):
                 if not message:
                     continue
 
-                response = 'Hi'
+                code, args = parse_command(message)
+                cmd = self._factory.create(code, *args)
+                if cmd is None:
+                    continue
+                response = cmd.execute()
 
                 self._socket.sendall(f"{response}\r\n".encode('utf-8'))
 

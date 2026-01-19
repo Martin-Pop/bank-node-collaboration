@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from multiprocessing import Queue, Process
 from multiprocessing.connection import PipeConnection
 
+from commands.factory import CommandFactory
 from core.client import ClientConnection, ClientContext
 from core.storages import BankCacheStorage, BankPersistentStorage
 from logger.configure import add_queue_handler_to_root
@@ -15,6 +16,7 @@ class WorkerContext:
     bank_cache: BankCacheStorage
     pipe: PipeConnection
     config: dict
+    factory: CommandFactory
 
 
 class Worker(Process):
@@ -26,6 +28,7 @@ class Worker(Process):
         self._bank_cache = worker_context.bank_cache
         self._pipe = worker_context.pipe
         self._configuration = worker_context.config
+        self._factory = worker_context.factory
 
         self._storage = None
         self._log = None
@@ -63,8 +66,7 @@ class Worker(Process):
                 context = ClientContext(
                     socket=client_socket,
                     config=self._configuration,
-                    executor=None,
-                    parser=None
+                    factory=self._factory
                 )
 
                 client = ClientConnection(context)
