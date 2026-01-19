@@ -1,21 +1,22 @@
 import logging
 import multiprocessing
 
-from core.bank import Bank
+from bank.bank import Bank
 from logger.configure import configure_logger_queue, add_queue_handler_to_root
-from config import ConfigurationManager
-
+from utils.configurations import ConfigurationManager
+from utils.paths import resolve_path
 
 if __name__ == "__main__":
 
     multiprocessing.freeze_support()
 
-    log_queue, listener = configure_logger_queue()
+    log_queue, listener = configure_logger_queue(resolve_path('app.log'))
     add_queue_handler_to_root(log_queue)
     listener.start()
 
     log = logging.getLogger("SYSTEM")
     try:
+
         config_manager = ConfigurationManager("config/config.json")
         config = config_manager.get_config()
         if not config:

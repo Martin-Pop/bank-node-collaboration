@@ -5,8 +5,8 @@ from multiprocessing import Queue, Process
 from multiprocessing.connection import PipeConnection
 
 from commands.factory import CommandFactory
-from core.client import ClientConnection, ClientContext
-from core.storages import BankCacheStorage, BankPersistentStorage
+from bank.client import ClientConnection, ClientContext
+from bank.storages import BankCacheStorage, BankPersistentStorage
 from logger.configure import add_queue_handler_to_root
 
 

@@ -2,6 +2,8 @@ import logging
 import json
 import ipaddress
 
+from utils.paths import resolve_path
+
 log = logging.getLogger("SYSTEM")
 
 class InvalidConfiguration(Exception):
@@ -25,11 +27,15 @@ class ConfigurationManager:
         :param config_file_path: file path
         :return: configuration dict if valid else None
         """
+        config_file_path = resolve_path(config_file_path)
 
         try:
             with open(config_file_path) as config_file:
                 config = json.load(config_file)
                 self._validate_config(config)
+
+                config['storage'] = resolve_path(config['storage'])
+                config['storage'] = resolve_path(config['storage'])
 
                 return config
 

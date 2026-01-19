@@ -2,7 +2,7 @@ import socket
 from multiprocessing import Queue, Pipe
 
 from commands.factory import CommandFactory
-from core.storages import BankCacheStorage
+from bank.storages import BankCacheStorage
 from workers.worker import WorkerContext, Worker
 
 

@@ -3,10 +3,10 @@ import socket
 from multiprocessing import Queue, Manager
 
 from commands.commands import BankCodeCommand
-from commands.contexts import CommandContext, BankCodeContext
+from commands.contexts import BankCodeContext
 from commands.factory import CommandFactory
-from core.gateway import Gateway
-from core.storages import BankCacheStorage, BankPersistentStorage, prepare_storage_structure, load_data_to_shared_memory
+from bank.gateway import Gateway
+from bank.storages import BankCacheStorage, BankPersistentStorage, prepare_storage_structure, load_data_to_shared_memory
 from workers.worker_manager import WorkerManager
 
 log = logging.getLogger("BANK")
