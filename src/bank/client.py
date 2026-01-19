@@ -30,7 +30,6 @@ class ClientConnection(Thread):
 
             while True:
                 data = self._socket.recv(1024)
-                print(data)
                 if not data:
                     break
 

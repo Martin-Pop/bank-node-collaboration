@@ -1,12 +1,20 @@
 import logging
 import sqlite3
 import threading
+import random
 import multiprocessing.managers as managers
 
+log = logging.getLogger("STORAGE")
+BOTTOM_ACCOUNT_NUMBER = 10_000
+TOP_ACCOUNT_NUMBER = 99_999
+MAX_ENTRIES = 5
 
 class BankCacheStorage:
     def __init__(self, shared_memory: managers.DictProxy):
         self._shared_memory = shared_memory
+
+    def update(self, account_number: int, value: int) -> None:
+        self._shared_memory[account_number] = value
 
 
 class BankPersistentStorage:
@@ -16,8 +24,22 @@ class BankPersistentStorage:
         self._lock = threading.Lock()
         self._connection = sqlite3.connect(self._file_path, check_same_thread=False, timeout=timeout)
 
-    def create_account(self):
-        raise NotImplementedError()
+    def create_account(self) -> int | None:
+
+        account_number = None
+        candidate = random.randint(BOTTOM_ACCOUNT_NUMBER, TOP_ACCOUNT_NUMBER)
+
+        for _ in range(MAX_ENTRIES):
+            try:
+                self._connection.execute("insert into accounts (account_number) values (?)", (candidate,))
+                self._connection.commit()
+
+                account_number = candidate
+            except sqlite3.IntegrityError:
+             log.warning(f"Collision detected for {candidate}")
+            continue
+
+        return account_number
 
     def remove_account(self):
         raise NotImplementedError()
@@ -48,6 +70,7 @@ def load_data_to_shared_memory(file_path: str, shared_memory: managers.DictProxy
 
         shared_memory.update(dict(rows))
         log.info(f"Shared memory has been loaded")
+        log.info(shared_memory)
         return True
 
     except sqlite3.Error as e:

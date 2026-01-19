@@ -1,10 +1,13 @@
 import logging
 import sqlite3
 from dataclasses import dataclass
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, managers
 from multiprocessing.connection import PipeConnection
 
+from commands.commands import BankCodeCommand, CreateAccountCommand
+from commands.contexts import BankCodeContext, StorageContext
 from commands.factory import CommandFactory
+
 from bank.client import ClientConnection, ClientContext
 from bank.storages import BankCacheStorage, BankPersistentStorage
 from logger.configure import add_queue_handler_to_root
@@ -13,10 +16,9 @@ from logger.configure import add_queue_handler_to_root
 @dataclass
 class WorkerContext:
     log_queue: Queue
-    bank_cache: BankCacheStorage
+    shared_memory: managers.DictProxy
     pipe: PipeConnection
     config: dict
-    factory: CommandFactory
 
 
 class Worker(Process):
@@ -25,11 +27,11 @@ class Worker(Process):
         super().__init__()
 
         self._log_queue = worker_context.log_queue
-        self._bank_cache = worker_context.bank_cache
+        self._bank_cache = BankCacheStorage(worker_context.shared_memory)
         self._pipe = worker_context.pipe
         self._configuration = worker_context.config
-        self._factory = worker_context.factory
 
+        self._factory = None
         self._storage = None
         self._log = None
 
@@ -40,8 +42,12 @@ class Worker(Process):
 
         try:
             self._storage = BankPersistentStorage(self._configuration["storage"], self._configuration["storage_timeout"])
+            self._factory = self._init_command_factory()
         except sqlite3.Error as e:
-            self._log.error(f"Worker could not connect to storage: {e}")
+            self._log.critical(f"Worker could not connect to storage: {e}")
+            return
+        except Exception as e:
+            self._log.critical(f"Failed to create command factory: {e}")
             return
 
         self._log.info(f"Worker {self.pid} started")
@@ -53,6 +59,18 @@ class Worker(Process):
         finally:
             self._storage.close()
 
+    def _init_command_factory(self):
+        factory = CommandFactory()
+
+        fake_bank_code = "FAKE_BANK_CODE_FOR_NOW"
+
+        bank_code_context = BankCodeContext(fake_bank_code)
+        factory.register("BC", BankCodeCommand, bank_code_context)
+
+        storage_context = StorageContext(fake_bank_code, self._storage, self._bank_cache)
+        factory.register("AC", CreateAccountCommand, storage_context)
+
+        return factory
 
     def _accept_clients(self):
         while True:

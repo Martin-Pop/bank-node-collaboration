@@ -1,5 +1,5 @@
 import socket
-from multiprocessing import Queue, Pipe
+from multiprocessing import Queue, Pipe, managers
 
 from commands.factory import CommandFactory
 from bank.storages import BankCacheStorage
@@ -8,13 +8,12 @@ from workers.worker import WorkerContext, Worker
 
 class WorkerManager:
 
-    def __init__(self, config: dict, log_queue: Queue, bank_cache_storage: BankCacheStorage, command_factory: CommandFactory):
+    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy):
 
         self._config = config
         self._worker_count = config["bank_workers"]
         self._log_queue = log_queue
-        self._bank_cache_storage = bank_cache_storage
-        self._command_factory = command_factory
+        self._shared_memory = shared_memory
 
         self._workers = []
         self._worker_pipes = []
@@ -26,11 +25,10 @@ class WorkerManager:
             parent_connection, child_connection = Pipe()
 
             context = WorkerContext(
-                bank_cache=self._bank_cache_storage,
+                shared_memory=self._shared_memory,
                 log_queue=self._log_queue,
                 pipe=child_connection,
                 config=self._config,
-                factory=self._command_factory
             )
 
             worker = Worker(context)

@@ -27,6 +27,8 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         exit(1)
+    except BaseException as e:
+        log.critical(e)
 
     finally:
         listener.stop()
