@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from bank.storages import BankCacheStorage, BankPersistentStorage
+from bank.storages import BankStorage
 
 
 @dataclass
@@ -16,5 +16,4 @@ class BankCodeContext(CommandContext):
 @dataclass
 class StorageContext(CommandContext):
     bank_code: str
-    storage: BankPersistentStorage
-    cache: BankCacheStorage
+    storage: BankStorage

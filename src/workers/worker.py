@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from multiprocessing import Queue, Process, managers
 from multiprocessing.connection import PipeConnection
 
-from commands.commands import BankCodeCommand, CreateAccountCommand
+from commands.commands import BankCodeCommand, CreateAccountCommand, RemoveAccountCommand
 from commands.contexts import BankCodeContext, StorageContext
 from commands.factory import CommandFactory
 
 from bank.client import ClientConnection, ClientContext
-from bank.storages import BankCacheStorage, BankPersistentStorage
+from bank.storages import BankStorage
 from logger.configure import add_queue_handler_to_root
 
 
@@ -27,7 +27,7 @@ class Worker(Process):
         super().__init__()
 
         self._log_queue = worker_context.log_queue
-        self._bank_cache = BankCacheStorage(worker_context.shared_memory)
+        self._cache = worker_context.shared_memory
         self._pipe = worker_context.pipe
         self._configuration = worker_context.config
 
@@ -41,7 +41,7 @@ class Worker(Process):
         self._log = logging.getLogger(f"WORKER-{self.pid}")
 
         try:
-            self._storage = BankPersistentStorage(self._configuration["storage"], self._configuration["storage_timeout"])
+            self._storage = BankStorage(self._configuration["storage"], self._configuration["storage_timeout"], self._cache)
             self._factory = self._init_command_factory()
         except sqlite3.Error as e:
             self._log.critical(f"Worker could not connect to storage: {e}")
@@ -67,8 +67,9 @@ class Worker(Process):
         bank_code_context = BankCodeContext(fake_bank_code)
         factory.register("BC", BankCodeCommand, bank_code_context)
 
-        storage_context = StorageContext(fake_bank_code, self._storage, self._bank_cache)
+        storage_context = StorageContext(fake_bank_code, self._storage)
         factory.register("AC", CreateAccountCommand, storage_context)
+        factory.register("AR", RemoveAccountCommand, storage_context)
 
         return factory
 

@@ -2,7 +2,7 @@ import logging
 import socket
 from multiprocessing import Queue, Manager
 from bank.gateway import Gateway
-from bank.storages import BankCacheStorage, BankPersistentStorage, prepare_storage_structure, load_data_to_shared_memory
+from bank.storages import prepare_storage_structure, load_data_to_shared_memory
 from workers.worker_manager import WorkerManager
 
 log = logging.getLogger("BANK")
@@ -16,7 +16,6 @@ class Bank:
         manager = Manager()
         shared_memory = manager.dict()
 
-        self._persistent_storage = BankPersistentStorage(self._config["storage"], self._config["storage_timeout"])
         self._gateway = Gateway(self._config["host"], self._config["port"])
         self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory)
 

@@ -17,33 +17,55 @@ class BankCacheStorage:
         self._shared_memory[account_number] = value
 
 
-class BankPersistentStorage:
+class BankStorage:
 
-    def __init__(self, file_path, timeout):
+    def __init__(self, file_path, timeout, shared_cache: managers.DictProxy):
         self._file_path = file_path
         self._lock = threading.Lock()
         self._connection = sqlite3.connect(self._file_path, check_same_thread=False, timeout=timeout)
+        self._cache = shared_cache
 
-    def create_account(self) -> int | None:
+    def _update_cache(self, account_number: str, value: int) -> None:
+        self._cache[account_number] = value
+
+    def create_account(self) -> str | None:
 
         account_number = None
-        candidate = random.randint(BOTTOM_ACCOUNT_NUMBER, TOP_ACCOUNT_NUMBER)
 
-        for _ in range(MAX_ENTRIES):
-            try:
-                self._connection.execute("insert into accounts (account_number) values (?)", (candidate,))
-                self._connection.commit()
+        with self._lock:
+            for _ in range(MAX_ENTRIES):
+                candidate = str(random.randint(BOTTOM_ACCOUNT_NUMBER, TOP_ACCOUNT_NUMBER))
 
-                account_number = candidate
-                break
-            except sqlite3.IntegrityError:
-                log.warning(f"Collision detected for {candidate}")
-                continue
+                try:
+                    with self._connection:
+                        self._connection.execute("insert into accounts (account_number) values (?)", (candidate,))
+
+                        account_number = candidate
+                        self._update_cache(account_number, 0)
+                        break
+                except sqlite3.IntegrityError:
+                    log.warning(f"Collision detected for {candidate}")
+                    continue
+                except Exception as e:
+                    log.error(f"Error while creating account: {e}")
+                    break
 
         return account_number
 
-    def remove_account(self):
-        raise NotImplementedError()
+    def remove_account(self, account_number: str) -> str:
+        with self._lock:
+            try:
+                with self._connection:
+                    cursor = self._connection.execute("delete from accounts where account_number = ?", (account_number,))
+
+                if cursor.rowcount > 0:
+                    self._cache.pop(account_number, None)
+                    return ''
+            except Exception as e:
+                log.error(f"Error while removing account: {e}")
+                return "Error while removing account"
+
+        return "Account not found"
 
     def deposit(self):
         raise NotImplementedError()
@@ -94,7 +116,7 @@ def prepare_storage_structure(file_path: str) -> bool:
 
         cursor.execute("""
                 CREATE TABLE IF NOT EXISTS accounts (
-                    account_number INTEGER PRIMARY KEY,
+                    account_number TEXT PRIMARY KEY,
                     balance INTEGER DEFAULT 0
                 )
             """)

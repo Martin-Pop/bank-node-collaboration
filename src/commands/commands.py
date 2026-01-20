@@ -17,7 +17,9 @@ class BaseCommand(ABC, Generic[T]):
     def execute(self) -> str:
         pass
 
-    def _success_response(self, message: str) -> str:
+    def _success_response(self, message: str | None = None ) -> str:
+        if not message:
+            return self._code
         return f"{self._code} {message}"
 
     def _error_response(self, message: str) -> str:
@@ -32,12 +34,23 @@ class BankCodeCommand(BaseCommand[BankCodeContext]):
 class CreateAccountCommand(BaseCommand[StorageContext]):
 
     def execute(self) -> str:
-        code = self._context.storage.create_account()
-        if code:
-            self._context.cache.update(code, 0)
-            return self._success_response(f"{code}/{self._context.bank_code}")
+        account = self._context.storage.create_account()
+        if account:
+            return self._success_response(f"{account}/{self._context.bank_code}")
         else:
             return self._error_response("Failed to create account, try again later")
+
+class RemoveAccountCommand(BaseCommand[StorageContext]):
+
+    def __init__(self, code: str, context: StorageContext, account_number: str):
+        super().__init__(code, context)
+        self._account_number = account_number
+
+    def execute(self) -> str:
+        message = self._context.storage.remove_account(self._account_number)
+        if message:
+            return self._error_response(message)
+        return self._success_response()
 
 
 
