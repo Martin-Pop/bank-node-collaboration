@@ -5,6 +5,9 @@ from bank.storages import BankStorage
 
 @dataclass
 class CommandContext:
+    """
+    Base command context class, made just for IDE typing
+    """
     pass
 
 

@@ -9,6 +9,9 @@ log = logging.getLogger("BANK")
 
 
 class Bank:
+    """
+    Main bank class
+    """
     def __init__(self, config: dict, log_queue: Queue):
         self._config = config
         self._log_queue = log_queue
@@ -30,8 +33,10 @@ class Bank:
         log.info("Bank initialized")
 
     def open_bank(self):
+        """
+        Bank gets open by accepting clients from gateway (main loop).
+        """
         try:
-
             self._worker_manager.create_workers()
             self._worker_manager.start_workers()
 

@@ -4,6 +4,9 @@ import socket
 log = logging.getLogger("SYSTEM")
 
 class Gateway:
+    """
+    Gateway provides server socket
+    """
 
     def __init__(self, host: str, port: int):
         self._host = host
@@ -12,6 +15,10 @@ class Gateway:
         self._server_socket = None
 
     def open(self):
+        """
+        Opens new socket on host and port
+        :return: new socket
+        """
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self._server_socket.bind((self._host, self._port))
@@ -24,4 +31,7 @@ class Gateway:
         return self._server_socket
 
     def close(self):
+        """
+        Closes socket
+        """
         self._server_socket.close()

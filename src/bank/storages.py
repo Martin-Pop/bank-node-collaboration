@@ -10,15 +10,10 @@ TOP_ACCOUNT_NUMBER = 99_999
 MAX_ENTRIES = 5
 
 
-class BankCacheStorage:
-    def __init__(self, shared_memory: managers.DictProxy):
-        self._shared_memory = shared_memory
-
-    def update(self, account_number: int, value: int) -> None:
-        self._shared_memory[account_number] = value
-
-
 class BankStorage:
+    """
+    Main storage for data
+    """
 
     def __init__(self, file_path, timeout, shared_cache: managers.DictProxy):
         self._file_path = file_path
@@ -30,6 +25,10 @@ class BankStorage:
         self._cache[account_number] = value
 
     def create_account(self) -> str | None:
+        """
+        Creates a new account
+        :return: if successful, returns account number otherwise None
+        """
 
         account_number = None
 
@@ -54,6 +53,11 @@ class BankStorage:
         return account_number
 
     def remove_account(self, account_number: str) -> str:
+        """
+        Removes an account
+        :param account_number: account number
+        :return: error message or empty string
+        """
         with self._lock:
             try:
                 with self._connection:
@@ -69,6 +73,12 @@ class BankStorage:
         return "Account not found"
 
     def deposit(self, account_number: str, value: int) -> str:
+        """
+        Deposits to an account
+        :param account_number: account number
+        :param value: value to deposit
+        :return: error message or empty string
+        """
         with self._lock:
             try:
                 with self._connection:
@@ -88,11 +98,20 @@ class BankStorage:
         raise NotImplementedError()
 
     def close(self):
+        """
+        Closes storage (connection to db)
+        """
         if self._connection:
             self._connection.close()
 
 
 def load_data_to_shared_memory(file_path: str, shared_memory: managers.DictProxy) -> bool:
+    """
+    Loads data from sqlite database into provided shared dictionary
+    :param file_path: database filepath
+    :param shared_memory: shared memory object
+    :return: true if successfully loaded
+    """
     log = logging.getLogger("SYSTEM")
     conn = None
     try:
@@ -123,6 +142,11 @@ def load_data_to_shared_memory(file_path: str, shared_memory: managers.DictProxy
 
 
 def prepare_storage_structure(file_path: str) -> bool:
+    """
+    Prepares storage structure (db structure)
+    :param file_path: database filepath
+    :return: true if successfully created
+    """
     log = logging.getLogger("SYSTEM")
     conn = None
     try:

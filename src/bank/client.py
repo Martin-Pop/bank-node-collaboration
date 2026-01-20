@@ -15,6 +15,9 @@ class ClientContext:
     factory: CommandFactory
 
 class ClientConnection(Thread):
+    """
+    Client class (thread)
+    """
 
     def __init__(self, context: ClientContext):
         super().__init__()
@@ -26,6 +29,9 @@ class ClientConnection(Thread):
         self.daemon = True
 
     def run(self):
+        """
+        Main client loop, handles data received from socket
+        """
         try:
             self._socket.settimeout(60)  # load this
 
@@ -66,6 +72,9 @@ class ClientConnection(Thread):
             self._close_connection()
 
     def _close_connection(self):
+        """
+        Close the socket connection
+        """
         try:
             self._socket.close()
             log.info("Connection closed.")

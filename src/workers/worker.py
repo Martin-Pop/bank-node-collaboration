@@ -22,6 +22,9 @@ class WorkerContext:
 
 
 class Worker(Process):
+    """
+    Worker process
+    """
 
     def __init__(self, worker_context: WorkerContext):
         super().__init__()
@@ -36,6 +39,10 @@ class Worker(Process):
         self._log = None
 
     def run(self):
+        """
+        Called when .start() is called.
+        Initializes storage and starts accepting sockets.
+        """
 
         add_queue_handler_to_root(self._log_queue)
         self._log = logging.getLogger(f"WORKER-{self.pid}")
@@ -59,8 +66,12 @@ class Worker(Process):
         finally:
             self._storage.close()
 
-    #factory is created here because some commands need storage context, which contains lock, which is unpickable
     def _init_command_factory(self):
+        """
+        Initializes command factory
+        Factory is created here because some commands need storage context, which contains lock, which is unpickable
+        :return: new factory
+        """
         factory = CommandFactory()
 
         bank_code = self._configuration['bank_code']
@@ -76,6 +87,9 @@ class Worker(Process):
         return factory
 
     def _accept_clients(self):
+        """
+        Accepts sockets from one side of the pipe, For every socket it starts a new client thread.
+        """
         while True:
             try:
                 client_socket = self._pipe.recv()

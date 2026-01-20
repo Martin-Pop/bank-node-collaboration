@@ -6,6 +6,9 @@ from commands.parser import parse_address
 T = TypeVar('T', bound=CommandContext)
 
 class BaseCommand(ABC, Generic[T]):
+    """
+    Base command class
+    """
     def __init__(self, code: str, context: T):
         self._code = code
         self._context = context
@@ -16,23 +19,43 @@ class BaseCommand(ABC, Generic[T]):
 
     @abstractmethod
     def execute(self) -> str:
+        """
+        Execute the command
+        :return: always returns result message
+        """
         pass
 
     def _success_response(self, message: str | None = None ) -> str:
+        """
+        Success response
+        :param message: message to add
+        :return: new successful response
+        """
         if not message:
             return self._code
         return f"{self._code} {message}"
 
     def _error_response(self, message: str) -> str:
+        """
+        Error response
+        :param message: message to add
+        :return: new error response
+        """
         return f"ER {message}"
 
 
 class BankCodeCommand(BaseCommand[BankCodeContext]):
+    """
+    Bank code command, just returns our bank code.
+    """
 
     def execute(self) -> str:
         return self._success_response(self._context.bank_code)
 
 class CreateAccountCommand(BaseCommand[StorageContext]):
+    """
+    Command to create a new account
+    """
 
     def execute(self) -> str:
         account = self._context.storage.create_account()
@@ -42,6 +65,9 @@ class CreateAccountCommand(BaseCommand[StorageContext]):
             return self._error_response("Failed to create account, try again later")
 
 class RemoveAccountCommand(BaseCommand[StorageContext]):
+    """
+    Command to remove an account
+    """
 
     def __init__(self, code: str, context: StorageContext, account_number: str):
         super().__init__(code, context)
@@ -54,6 +80,9 @@ class RemoveAccountCommand(BaseCommand[StorageContext]):
         return self._success_response()
 
 class AccountDepositCommand(BaseCommand[StorageContext]):
+    """
+    Deposits money into an account
+    """
 
     def __init__(self, code: str, context: StorageContext, account_address: str, value: str):
         super().__init__(code, context)
