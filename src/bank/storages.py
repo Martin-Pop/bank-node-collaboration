@@ -9,6 +9,7 @@ BOTTOM_ACCOUNT_NUMBER = 10_000
 TOP_ACCOUNT_NUMBER = 99_999
 MAX_ENTRIES = 5
 
+
 class BankCacheStorage:
     def __init__(self, shared_memory: managers.DictProxy):
         self._shared_memory = shared_memory
@@ -56,7 +57,7 @@ class BankStorage:
         with self._lock:
             try:
                 with self._connection:
-                    cursor = self._connection.execute("delete from accounts where account_number = ?", (account_number,))
+                    cursor = self._connection.execute("delete from accounts where account_number = ?",(account_number,))
 
                 if cursor.rowcount > 0:
                     self._cache.pop(account_number, None)
@@ -67,8 +68,21 @@ class BankStorage:
 
         return "Account not found"
 
-    def deposit(self):
-        raise NotImplementedError()
+    def deposit(self, account_number: str, value: int) -> str:
+        with self._lock:
+            try:
+                with self._connection:
+                    cursor = self._connection.execute("update accounts set balance = balance + ? where account_number = ?" ,(value, account_number))
+
+                if cursor.rowcount > 0:
+                    self._cache[account_number] += value
+                    return ''
+
+            except Exception as e:
+                log.error(f"Error while depositing: {e}")
+                return "Error while depositing"
+
+        return "Invalid account number"
 
     def withdraw(self):
         raise NotImplementedError()
@@ -76,6 +90,7 @@ class BankStorage:
     def close(self):
         if self._connection:
             self._connection.close()
+
 
 def load_data_to_shared_memory(file_path: str, shared_memory: managers.DictProxy) -> bool:
     log = logging.getLogger("SYSTEM")

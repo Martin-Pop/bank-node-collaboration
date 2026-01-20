@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 from commands.contexts import CommandContext, BankCodeContext, StorageContext
+from commands.parser import parse_address
 
 T = TypeVar('T', bound=CommandContext)
 
@@ -51,6 +52,37 @@ class RemoveAccountCommand(BaseCommand[StorageContext]):
         if message:
             return self._error_response(message)
         return self._success_response()
+
+class AccountDepositCommand(BaseCommand[StorageContext]):
+
+    def __init__(self, code: str, context: StorageContext, account_address: str, value: str):
+        super().__init__(code, context)
+        try:
+            self._value = int(value)
+
+            account, _ = parse_address(account_address)
+            if account:
+                self._account_number = account
+            else: raise ValueError
+        except ValueError:
+            self._value = None
+            self._account_number = None
+
+
+    def execute(self) -> str:
+        if self._value is None or self._account_number is None:
+            return self._error_response("Invalid parameters")
+
+        message = self._context.storage.deposit(self._account_number, self._value)
+        if message:
+            return self._error_response(message)
+        return self._success_response()
+
+
+
+
+
+
 
 
 

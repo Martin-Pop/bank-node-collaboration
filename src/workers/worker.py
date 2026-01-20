@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from multiprocessing import Queue, Process, managers
 from multiprocessing.connection import PipeConnection
 
-from commands.commands import BankCodeCommand, CreateAccountCommand, RemoveAccountCommand
+from commands.commands import BankCodeCommand, CreateAccountCommand, RemoveAccountCommand, AccountDepositCommand
 from commands.contexts import BankCodeContext, StorageContext
 from commands.factory import CommandFactory
 
@@ -59,17 +59,19 @@ class Worker(Process):
         finally:
             self._storage.close()
 
+    #factory is created here because some commands need storage context, which contains lock, which is unpickable
     def _init_command_factory(self):
         factory = CommandFactory()
 
-        fake_bank_code = "FAKE_BANK_CODE_FOR_NOW"
+        bank_code = self._configuration['bank_code']
 
-        bank_code_context = BankCodeContext(fake_bank_code)
+        bank_code_context = BankCodeContext(bank_code)
         factory.register("BC", BankCodeCommand, bank_code_context)
 
-        storage_context = StorageContext(fake_bank_code, self._storage)
+        storage_context = StorageContext(bank_code, self._storage)
         factory.register("AC", CreateAccountCommand, storage_context)
         factory.register("AR", RemoveAccountCommand, storage_context)
+        factory.register("AD", AccountDepositCommand, storage_context)
 
         return factory
 

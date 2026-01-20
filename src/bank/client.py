@@ -3,7 +3,8 @@ from threading import Thread
 from dataclasses import dataclass
 import socket
 
-from commands.factory import CommandFactory, parse_command
+from commands.factory import CommandFactory
+from commands.parser import parse_command, is_command_for_us
 
 log = logging.getLogger('WORKER')
 
@@ -38,11 +39,20 @@ class ClientConnection(Thread):
                     continue
 
                 code, args = parse_command(message)
-                cmd = self._factory.create(code, *args)
-                if cmd is None:
-                    response = "ER Invalid command"
+                is_for_our_bank = is_command_for_us(self._configuration['bank_code'] , args[0] if args else None)
+
+                if is_for_our_bank:
+                    try:
+                        cmd = self._factory.create(code, *args)
+                        if cmd is None:
+                            response = "ER Invalid command"
+                        else:
+                            response = cmd.execute()
+                    except TypeError: # when not enough args are passed
+                        response = "ER invalid arguments"
                 else:
-                    response = cmd.execute()
+                    #TODO: add relaying
+                    response = "RELAYING"
 
                 self._socket.sendall(f"{response}\r\n".encode('utf-8'))
 

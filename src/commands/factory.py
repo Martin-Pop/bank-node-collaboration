@@ -3,14 +3,6 @@ from commands.contexts import CommandContext
 from typing import Type
 
 
-def parse_command(message: str):
-    parts = message.strip().split()
-    if not parts:
-        return 'ER', ()
-
-    return parts[0].strip().upper(), parts[1:]
-
-
 class CommandFactory:
     def __init__(self):
         """

@@ -22,6 +22,9 @@ if __name__ == "__main__":
         if not config:
             exit(1)
 
+        #todo: add real bank code
+        config['bank_code'] = '1.1.1.1'
+
         bank = Bank(config, log_queue)
         bank.open_bank()
 
