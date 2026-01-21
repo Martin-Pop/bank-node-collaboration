@@ -95,64 +95,33 @@ class BankStorage:
         return "Invalid account number"
 
     def withdraw(self, account_number: str, value: int) -> str:
-        """
-        Withdraws from an account
-        :param account_number: account number
-        :param value: value to withdraw
-        :return: error message or empty string
-        """
         with self._lock:
+            current_balance = self._cache.get(account_number)
+            if current_balance is None:
+                return "Account not found"
+            if current_balance < value:
+                return "Lack of funds"
+
             try:
-                cursor = self._connection.execute(
-                    "SELECT balance FROM accounts WHERE account_number = ?",
-                    (account_number,)
-                )
-                row = cursor.fetchone()
-
-                if not row:
-                    return "Account not found"
-
-                current_balance = row[0]
-                if current_balance < value:
-                    return "Insufficient funds"
-
                 with self._connection:
                     self._connection.execute(
                         "UPDATE accounts SET balance = balance - ? WHERE account_number = ?",
                         (value, account_number)
                     )
-
                 self._cache[account_number] = current_balance - value
                 return ''
-
             except Exception as e:
-                log.error(f"Error while withdrawing: {e}")
-                return "Error while withdrawing"
+                log.error(f"Error: {e}")
+                return "Database error"
 
     def get_balance(self, account_number: str) -> int | None:
         """
-        Gets account balance
+        Gets account balance directly from shared cache.
         :param account_number: account number
         :return: balance or None if account doesn't exist
         """
-        if account_number in self._cache:
-            return self._cache[account_number]
-
         with self._lock:
-            try:
-                cursor = self._connection.execute(
-                    "SELECT balance FROM accounts WHERE account_number = ?",
-                    (account_number,)
-                )
-                row = cursor.fetchone()
-                if row:
-                    balance = row[0]
-                    self._cache[account_number] = balance
-                    return balance
-                return None
-            except Exception as e:
-                log.error(f"Error getting balance: {e}")
-                return None
+            return self._cache[account_number]
 
     def get_total_amount(self) -> int:
         """
