@@ -14,6 +14,7 @@ class ClientContext:
     socket: socket.socket
     config: dict
     factory: CommandFactory
+    active_connections: Value
 
 class ClientConnection(Thread):
     """
