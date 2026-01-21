@@ -12,6 +12,8 @@ from bank.client import ClientConnection, ClientContext
 from bank.storages import BankStorage
 from logger.configure import add_queue_handler_to_root
 
+from commands.commands import AccountWithdrawalCommand, AccountBalanceCommand, BankAmountCommand, BankNumberCommand
+
 
 @dataclass
 class WorkerContext:
@@ -83,6 +85,10 @@ class Worker(Process):
         factory.register("AC", CreateAccountCommand, storage_context)
         factory.register("AR", RemoveAccountCommand, storage_context)
         factory.register("AD", AccountDepositCommand, storage_context)
+        factory.register("AW", AccountWithdrawalCommand, storage_context)
+        factory.register("AB", AccountBalanceCommand, storage_context)
+        factory.register("BA", BankAmountCommand, storage_context)
+        factory.register("BN", BankNumberCommand, storage_context)
 
         return factory
 
