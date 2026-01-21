@@ -9,12 +9,13 @@ class WorkerManager:
     Class that manages workers (Processes).
     """
 
-    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy):
+    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy, shared_lock):
 
         self._config = config
         self._worker_count = config["bank_workers"]
         self._log_queue = log_queue
         self._shared_memory = shared_memory
+        self._shared_lock = shared_lock
 
         self._workers = []
         self._worker_pipes = []
@@ -33,6 +34,7 @@ class WorkerManager:
                 log_queue=self._log_queue,
                 pipe=child_connection,
                 config=self._config,
+                lock=self._shared_lock
             )
 
             worker = Worker(context)

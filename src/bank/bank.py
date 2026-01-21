@@ -18,9 +18,10 @@ class Bank:
 
         manager = Manager()
         shared_memory = manager.dict()
+        shared_lock = manager.Lock()
 
         self._gateway = Gateway(self._config["host"], self._config["port"])
-        self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory)
+        self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory, shared_lock)
 
         success = prepare_storage_structure(self._config["storage"])
         if not success:

@@ -108,9 +108,6 @@ class AccountDepositCommand(BaseCommand[StorageContext]):
         return self._success_response()
 
 
-
-
-
 class AccountBalanceCommand(BaseCommand[StorageContext]):
     """
     Gets account balance
