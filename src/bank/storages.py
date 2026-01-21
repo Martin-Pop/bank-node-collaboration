@@ -94,8 +94,61 @@ class BankStorage:
 
         return "Invalid account number"
 
-    def withdraw(self):
-        raise NotImplementedError()
+    def withdraw(self, account_number: str, value: int) -> str:
+        with self._lock:
+            current_balance = self._cache.get(account_number)
+            if current_balance is None:
+                return "Account not found"
+            if current_balance < value:
+                return "Lack of funds"
+
+            try:
+                with self._connection:
+                    self._connection.execute(
+                        "UPDATE accounts SET balance = balance - ? WHERE account_number = ?",
+                        (value, account_number)
+                    )
+                self._cache[account_number] = current_balance - value
+                return ''
+            except Exception as e:
+                log.error(f"Error: {e}")
+                return "Database error"
+
+    def get_balance(self, account_number: str) -> int | None:
+        """
+        Gets account balance directly from shared cache.
+        :param account_number: account number
+        :return: balance or None if account doesn't exist
+        """
+        with self._lock:
+            return self._cache[account_number]
+
+    def get_total_amount(self) -> int:
+        """
+        Gets total amount in all accounts
+        :return: total amount
+        """
+        with self._lock:
+            try:
+                cursor = self._connection.execute("SELECT SUM(balance) FROM accounts")
+                result = cursor.fetchone()[0]
+                return result if result else 0
+            except Exception as e:
+                log.error(f"Error getting total amount: {e}")
+                return 0
+
+    def get_client_count(self) -> int:
+        """
+        Gets number of clients (accounts)
+        :return: client count
+        """
+        with self._lock:
+            try:
+                cursor = self._connection.execute("SELECT COUNT(*) FROM accounts")
+                return cursor.fetchone()[0]
+            except Exception as e:
+                log.error(f"Error getting client count: {e}")
+                return 0
 
     def close(self):
         """
