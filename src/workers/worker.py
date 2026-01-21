@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 from dataclasses import dataclass
-from multiprocessing import Queue, Process, managers
+from multiprocessing import Queue, Process, managers, Value
 from multiprocessing.connection import PipeConnection
 from typing import Any
 
@@ -24,7 +24,8 @@ class WorkerContext:
     shared_memory: managers.DictProxy
     pipe: PipeConnection
     config: dict
-    lock: Any #AcquirerProxy - dynamically generated class ?
+    lock: Any  # AcquirerProxy - dynamically generated class ?
+    active_connections: Value
 
 
 class Worker(Process):
@@ -40,6 +41,7 @@ class Worker(Process):
         self._pipe = worker_context.pipe
         self._configuration = worker_context.config
         self._lock = worker_context.lock
+        self._active_connections = worker_context.active_connections
 
         self._factory = None
         self._storage = None
@@ -101,7 +103,7 @@ class Worker(Process):
 
     def _accept_clients(self):
         """
-        Accepts sockets from one side of the pipe, For every socket it starts a new client thread.
+        Accepts sockets from one side of the pipe. For every socket it starts a new client thread.
         """
         while True:
             try:
@@ -114,7 +116,8 @@ class Worker(Process):
                 context = ClientContext(
                     socket=client_socket,
                     config=self._configuration,
-                    factory=self._factory
+                    factory=self._factory,
+                    active_connections=self._active_connections
                 )
 
                 client = ClientConnection(context)
