@@ -1,6 +1,5 @@
 import logging
 import sqlite3
-import threading
 import random
 import multiprocessing.managers as managers
 
@@ -15,140 +14,126 @@ class BankStorage:
     Main storage for data
     """
 
-    def __init__(self, file_path, timeout, shared_cache: managers.DictProxy):
+    def __init__(self, file_path, timeout, shared_cache: managers.DictProxy, shared_lock):
         self._file_path = file_path
-        self._lock = threading.Lock()
+        self._lock = shared_lock
         self._connection = sqlite3.connect(self._file_path, check_same_thread=False, timeout=timeout)
         self._cache = shared_cache
 
-    def _update_cache(self, account_number: str, value: int) -> None:
-        self._cache[account_number] = value
 
     def create_account(self) -> str | None:
-        """
-        Creates a new account
-        :return: if successful, returns account number otherwise None
-        """
 
-        account_number = None
+        for _ in range(MAX_ENTRIES):
+            candidate = str(random.randint(BOTTOM_ACCOUNT_NUMBER, TOP_ACCOUNT_NUMBER))
 
-        with self._lock:
-            for _ in range(MAX_ENTRIES):
-                candidate = str(random.randint(BOTTOM_ACCOUNT_NUMBER, TOP_ACCOUNT_NUMBER))
-
-                try:
-                    with self._connection:
-                        self._connection.execute("insert into accounts (account_number) values (?)", (candidate,))
-
-                        account_number = candidate
-                        self._update_cache(account_number, 0)
-                        break
-                except sqlite3.IntegrityError:
-                    log.warning(f"Collision detected for {candidate}")
-                    continue
-                except Exception as e:
-                    log.error(f"Error while creating account: {e}")
-                    break
-
-        return account_number
-
-    def remove_account(self, account_number: str) -> str:
-        """
-        Removes an account
-        :param account_number: account number
-        :return: error message or empty string
-        """
-        with self._lock:
             try:
                 with self._connection:
-                    cursor = self._connection.execute("delete from accounts where account_number = ?",(account_number,))
+                    self._connection.execute("insert into accounts (account_number) values (?)", (candidate,))
 
-                if cursor.rowcount > 0:
-                    self._cache.pop(account_number, None)
-                    return ''
+                account_number = candidate
+
+                with self._lock:
+                    self._cache[account_number] = 0
+
+                return account_number
+
+            except sqlite3.IntegrityError:
+                log.warning(f"Collision detected for {candidate}")
+                continue
             except Exception as e:
-                log.error(f"Error while removing account: {e}")
-                return "Error while removing account"
+                log.error(f"Error while creating account: {e}")
+                break
+
+        return None
+
+    def remove_account(self, account_number: str) -> str:
+        try:
+            with self._connection:
+                cursor = self._connection.execute("delete from accounts where account_number = ?", (account_number,))
+
+            if cursor.rowcount > 0:
+                with self._lock:
+                    self._cache.pop(account_number, None)
+                return ''
+
+        except Exception as e:
+            log.error(f"Error while removing account: {e}")
+            return "Error while removing account"
 
         return "Account not found"
 
     def deposit(self, account_number: str, value: int) -> str:
-        """
-        Deposits to an account
-        :param account_number: account number
-        :param value: value to deposit
-        :return: error message or empty string
-        """
-        with self._lock:
-            try:
-                with self._connection:
-                    cursor = self._connection.execute("update accounts set balance = balance + ? where account_number = ?" ,(value, account_number))
+        try:
+            with self._connection:
+                cursor = self._connection.execute(
+                    "update accounts set balance = balance + ? where account_number = ?", (value, account_number))
 
-                if cursor.rowcount > 0:
-                    self._cache[account_number] += value
-                    return ''
+            if cursor.rowcount > 0:
+                with self._lock:
+                    if account_number in self._cache:
+                        self._cache[account_number] += value
+                return ''
 
-            except Exception as e:
-                log.error(f"Error while depositing: {e}")
-                return "Error while depositing"
+        except Exception as e:
+            log.error(f"Error while depositing: {e}")
+            return "Error while depositing"
 
         return "Invalid account number"
 
     def withdraw(self, account_number: str, value: int) -> str:
-        with self._lock:
-            current_balance = self._cache.get(account_number)
-            if current_balance is None:
-                return "Account not found"
-            if current_balance < value:
+        try:
+            with self._connection:
+                cursor = self._connection.execute(
+                    "UPDATE accounts SET balance = balance - ? WHERE account_number = ? AND balance >= ?",
+                    (value, account_number, value)
+                )
+
+            if cursor.rowcount > 0:
+                with self._lock:
+                    if account_number in self._cache:
+                        self._cache[account_number] -= value
+                return ''
+            else:
+                cursor = self._connection.execute("SELECT 1 FROM accounts WHERE account_number = ?", (account_number,))
+                if not cursor.fetchone():
+                    return "Account not found"
                 return "Lack of funds"
 
-            try:
-                with self._connection:
-                    self._connection.execute(
-                        "UPDATE accounts SET balance = balance - ? WHERE account_number = ?",
-                        (value, account_number)
-                    )
-                self._cache[account_number] = current_balance - value
-                return ''
-            except Exception as e:
-                log.error(f"Error: {e}")
-                return "Database error"
+        except Exception as e:
+            log.error(f"Error: {e}")
+            return "Database error"
 
     def get_balance(self, account_number: str) -> int | None:
         """
         Gets account balance directly from shared cache.
-        :param account_number: account number
-        :return: balance or None if account doesn't exist
         """
         with self._lock:
-            return self._cache[account_number]
+            return self._cache.get(account_number)
 
     def get_total_amount(self) -> int:
         """
         Gets total amount in all accounts
         :return: total amount
         """
-        with self._lock:
-            try:
-                cursor = self._connection.execute("SELECT SUM(balance) FROM accounts")
-                result = cursor.fetchone()[0]
-                return result if result else 0
-            except Exception as e:
-                log.error(f"Error getting total amount: {e}")
-                return 0
+        try:
+            cursor = self._connection.execute("SELECT SUM(balance) FROM accounts")
+            result = cursor.fetchone()[0]
+            return result if result else 0
+        except Exception as e:
+            log.error(f"Error getting total amount: {e}")
+            return 0
 
     def get_client_count(self) -> int:
         """
         Gets number of clients (accounts)
         :return: client count
         """
-        with self._lock:
-            try:
-                cursor = self._connection.execute("SELECT COUNT(*) FROM accounts")
-                return cursor.fetchone()[0]
-            except Exception as e:
-                log.error(f"Error getting client count: {e}")
-                return 0
+        try:
+            cursor = self._connection.execute("SELECT COUNT(*) FROM accounts")
+            return cursor.fetchone()[0]
+        except Exception as e:
+            log.error(f"Error getting client count: {e}")
+        return 0
 
     def close(self):
         """

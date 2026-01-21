@@ -18,9 +18,10 @@ class Bank:
 
         manager = Manager()
         shared_memory = manager.dict()
+        shared_lock = manager.Lock()
 
         self._gateway = Gateway(self._config["host"], self._config["port"])
-        self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory)
+        self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory, shared_lock)
 
         success = prepare_storage_structure(self._config["storage"])
         if not success:
@@ -44,6 +45,10 @@ class Bank:
             self._start_listening_for_clients(server_socket)
         except BaseException as e:  # fallback
             log.critical(e)
+
+    def close_bank(self):
+        self._worker_manager.stop_workers()
+        self._gateway.close()
 
     def _start_listening_for_clients(self, server_socket: socket.socket):
         while True:

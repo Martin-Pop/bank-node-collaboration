@@ -3,16 +3,19 @@ import sqlite3
 from dataclasses import dataclass
 from multiprocessing import Queue, Process, managers
 from multiprocessing.connection import PipeConnection
+from typing import Any
 
-from commands.commands import BankCodeCommand, CreateAccountCommand, RemoveAccountCommand, AccountDepositCommand
+from commands.commands import (
+BankCodeCommand, CreateAccountCommand, RemoveAccountCommand,
+AccountDepositCommand, AccountWithdrawCommand, AccountBalanceCommand,
+BankAmountCommand, BankNumberCommand)
+
 from commands.contexts import BankCodeContext, StorageContext
 from commands.factory import CommandFactory
 
 from bank.client import ClientConnection, ClientContext
 from bank.storages import BankStorage
 from logger.configure import add_queue_handler_to_root
-
-from commands.commands import AccountWithdrawalCommand, AccountBalanceCommand, BankAmountCommand, BankNumberCommand
 
 
 @dataclass
@@ -21,6 +24,7 @@ class WorkerContext:
     shared_memory: managers.DictProxy
     pipe: PipeConnection
     config: dict
+    lock: Any #AcquirerProxy - dynamically generated class ?
 
 
 class Worker(Process):
@@ -35,10 +39,13 @@ class Worker(Process):
         self._cache = worker_context.shared_memory
         self._pipe = worker_context.pipe
         self._configuration = worker_context.config
+        self._lock = worker_context.lock
 
         self._factory = None
         self._storage = None
         self._log = None
+
+        self.daemon = True
 
     def run(self):
         """
@@ -50,7 +57,7 @@ class Worker(Process):
         self._log = logging.getLogger(f"WORKER-{self.pid}")
 
         try:
-            self._storage = BankStorage(self._configuration["storage"], self._configuration["storage_timeout"], self._cache)
+            self._storage = BankStorage(self._configuration["storage"], self._configuration["storage_timeout"], self._cache, self._lock)
             self._factory = self._init_command_factory()
         except sqlite3.Error as e:
             self._log.critical(f"Worker could not connect to storage: {e}")
@@ -85,7 +92,7 @@ class Worker(Process):
         factory.register("AC", CreateAccountCommand, storage_context)
         factory.register("AR", RemoveAccountCommand, storage_context)
         factory.register("AD", AccountDepositCommand, storage_context)
-        factory.register("AW", AccountWithdrawalCommand, storage_context)
+        factory.register("AW", AccountWithdrawCommand, storage_context)
         factory.register("AB", AccountBalanceCommand, storage_context)
         factory.register("BA", BankAmountCommand, storage_context)
         factory.register("BN", BankNumberCommand, storage_context)

@@ -1,20 +1,22 @@
+import logging
 import socket
 from multiprocessing import Queue, Pipe, managers
 
 from workers.worker import WorkerContext, Worker
 
-
+log = logging.getLogger("MANAGER")
 class WorkerManager:
     """
     Class that manages workers (Processes).
     """
 
-    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy):
+    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy, shared_lock):
 
         self._config = config
         self._worker_count = config["bank_workers"]
         self._log_queue = log_queue
         self._shared_memory = shared_memory
+        self._shared_lock = shared_lock
 
         self._workers = []
         self._worker_pipes = []
@@ -33,6 +35,7 @@ class WorkerManager:
                 log_queue=self._log_queue,
                 pipe=child_connection,
                 config=self._config,
+                lock=self._shared_lock
             )
 
             worker = Worker(context)
@@ -58,8 +61,13 @@ class WorkerManager:
         Distributes socket between workers, socket in this process must be closed.
         :param client_socket: socket to distribute.
         """
-        #Todo implement distribution
         try:
             self._worker_pipes[self._worker_index].send(client_socket)
+        except IndexError:
+            log.critical("Worker process was not found - its either dead or none were created")
         finally:
             client_socket.close()
+            if self._worker_index < len(self._worker_pipes) - 1:
+                self._worker_index += 1
+            else:
+                self._worker_index = 0
