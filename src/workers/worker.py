@@ -3,11 +3,12 @@ import sqlite3
 from dataclasses import dataclass
 from multiprocessing import Queue, Process, managers
 from multiprocessing.connection import PipeConnection
+from typing import Any
 
 from commands.commands import (
 BankCodeCommand, CreateAccountCommand, RemoveAccountCommand,
-AccountDepositCommand,AccountBalanceCommand, BankAmountCommand,
-BankNumberCommand)
+AccountDepositCommand, AccountWithdrawCommand, AccountBalanceCommand,
+BankAmountCommand, BankNumberCommand)
 
 from commands.contexts import BankCodeContext, StorageContext
 from commands.factory import CommandFactory
@@ -23,7 +24,7 @@ class WorkerContext:
     shared_memory: managers.DictProxy
     pipe: PipeConnection
     config: dict
-    lock: int
+    lock: Any #AcquirerProxy - dynamically generated class ?
 
 
 class Worker(Process):
@@ -89,7 +90,7 @@ class Worker(Process):
         factory.register("AC", CreateAccountCommand, storage_context)
         factory.register("AR", RemoveAccountCommand, storage_context)
         factory.register("AD", AccountDepositCommand, storage_context)
-        # factory.register("AW", AccountWithdrawalCommand, storage_context)
+        factory.register("AW", AccountWithdrawCommand, storage_context)
         factory.register("AB", AccountBalanceCommand, storage_context)
         factory.register("BA", BankAmountCommand, storage_context)
         factory.register("BN", BankNumberCommand, storage_context)

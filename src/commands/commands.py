@@ -97,7 +97,6 @@ class AccountDepositCommand(BaseCommand[StorageContext]):
             self._value = None
             self._account_number = None
 
-
     def execute(self) -> str:
         if self._value is None or self._account_number is None:
             return self._error_response("Invalid parameters")
@@ -105,6 +104,36 @@ class AccountDepositCommand(BaseCommand[StorageContext]):
         message = self._context.storage.deposit(self._account_number, self._value)
         if message:
             return self._error_response(message)
+        return self._success_response()
+
+
+class AccountWithdrawCommand(BaseCommand[StorageContext]):
+    """
+    Withdraws money from an account
+    """
+
+    def __init__(self, code: str, context: StorageContext, account_address: str, value: str):
+        super().__init__(code, context)
+        try:
+            self._value = int(value)
+
+            account, _ = parse_address(account_address)
+            if account:
+                self._account_number = account
+            else:
+                raise ValueError
+        except ValueError:
+            self._value = None
+            self._account_number = None
+
+    def execute(self) -> str:
+        if self._value is None or self._account_number is None:
+            return self._error_response("Invalid parameters")
+
+        message = self._context.storage.withdraw(self._account_number, self._value)
+        if message:
+            return self._error_response(message)
+
         return self._success_response()
 
 
