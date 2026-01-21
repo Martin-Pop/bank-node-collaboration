@@ -16,6 +16,7 @@ if __name__ == "__main__":
     listener.start()
 
     log = logging.getLogger("SYSTEM")
+    bank = None
     try:
 
         #load configuration
@@ -37,4 +38,5 @@ if __name__ == "__main__":
         log.critical(e)
 
     finally:
+        bank.close_bank()
         listener.stop()

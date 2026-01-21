@@ -45,6 +45,8 @@ class Worker(Process):
         self._storage = None
         self._log = None
 
+        self.daemon = True
+
     def run(self):
         """
         Called when .start() is called.

@@ -1,3 +1,13 @@
+## [0.0.3] - 21. 1. 2026 - Martin Pop
+
+### Fixed
+- Cache locking.
+
+### Added
+- Account Withdraw (AW) command.
+- Implemented work distribution between workers.
+
+
 ## [0.0.2] - 21. 1. 2026 - Jakub Šrámek
 
 ### Added
@@ -10,5 +20,5 @@
 ## [0.0.1] - 20. 1. 2026 - Martin Pop
 
 ### Added
-- this changelog file
-- initial migration from the old / legacy repository.
+- This changelog file.
+- Initial migration from the old / legacy repository.

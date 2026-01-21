@@ -46,6 +46,10 @@ class Bank:
         except BaseException as e:  # fallback
             log.critical(e)
 
+    def close_bank(self):
+        self._worker_manager.stop_workers()
+        self._gateway.close()
+
     def _start_listening_for_clients(self, server_socket: socket.socket):
         while True:
             client_socket, client_address = server_socket.accept()
