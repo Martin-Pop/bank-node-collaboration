@@ -111,8 +111,51 @@ class AccountDepositCommand(BaseCommand[StorageContext]):
 
 
 
+class AccountBalanceCommand(BaseCommand[StorageContext]):
+    """
+    Gets account balance
+    """
+
+    def __init__(self, code: str, context: StorageContext, account_address: str):
+        super().__init__(code, context)
+        try:
+            account, _ = parse_address(account_address)
+            if account:
+                acc_num = int(account)
+                if 10000 <= acc_num <= 99999:
+                    self._account_number = account
+                else:
+                    raise ValueError
+            else:
+                raise ValueError
+        except ValueError:
+            self._account_number = None
+
+    def execute(self) -> str:
+        if self._account_number is None:
+            return self._error_response("Invalid account number format")
+
+        balance = self._context.storage.get_balance(self._account_number)
+        if balance is None:
+            return self._error_response("Account not found")
+        return self._success_response(str(balance))
 
 
+class BankAmountCommand(BaseCommand[StorageContext]):
+    """
+    Gets total amount in bank
+    """
+
+    def execute(self) -> str:
+        total = self._context.storage.get_total_amount()
+        return self._success_response(str(total))
 
 
+class BankNumberCommand(BaseCommand[StorageContext]):
+    """
+    Gets number of clients
+    """
 
+    def execute(self) -> str:
+        count = self._context.storage.get_client_count()
+        return self._success_response(str(count))
