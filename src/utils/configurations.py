@@ -1,6 +1,7 @@
 import logging
 import json
 import ipaddress
+from pathlib import Path
 
 from utils.paths import resolve_path
 
@@ -55,9 +56,14 @@ class ConfigurationManager:
         :param config: config to validate
         """
 
-        #TODO: add validation for the rest.
-
-        required_keys = ["host", "port"]
+        required_keys = [
+            "host",
+            "port",
+            "storage",
+            "storage_timeout",
+            "bank_workers",
+            "client_timeout"
+        ]
 
         missing_keys = [key for key in required_keys if key not in config]
         if missing_keys:
@@ -71,8 +77,51 @@ class ConfigurationManager:
         except ValueError:
             raise InvalidConfiguration("Host must be a valid IPv4 address.")
 
-        if not isinstance(config["port"], int) or not (1 <= config["port"] <= 65535):
+        if not isinstance(config["port"], int):
+            raise InvalidConfiguration(f"Port must be an integer.")
+
+        if not (1 <= config["port"] <= 65535):
             raise InvalidConfiguration(f"Port must be in range from 1 to 65535. Found: {config["port"]}")
+
+        storage_path = config["storage"]
+        if not isinstance(storage_path, str) or not storage_path.strip():
+            raise InvalidConfiguration("Storage path must be a non-empty string")
+
+        try:
+            parent_dir = Path(resolve_path(storage_path)).parent
+            if not parent_dir.exists():
+                raise InvalidConfiguration(f"Parent directory for storage does not exist: {parent_dir}")
+        except Exception as e:
+            raise InvalidConfiguration(f"Invalid storage path: {e}")
+
+        if not isinstance(config["storage_timeout"], (int, float)):
+            raise InvalidConfiguration(f"storage_timeout must be a number. Found: {type(config['storage_timeout']).__name__}")
+
+        if config["storage_timeout"] <= 0:
+            raise InvalidConfiguration(f"storage_timeout must be positive. Found: {config['storage_timeout']}")
+
+        if config["storage_timeout"] > 15:
+            raise InvalidConfiguration(f"storage_timeout cant be bigger than 15. Found: {config['storage_timeout']}")
+
+        if not isinstance(config["bank_workers"], int):
+            raise InvalidConfiguration(f"bank_workers must be an integer. Found: {type(config['bank_workers']).__name__}")
+
+        if config["bank_workers"] < 1:
+            raise InvalidConfiguration(f"bank_workers must be at least 1. Found: {config['bank_workers']}")
+
+        if config["bank_workers"] > 16:
+            raise InvalidConfiguration(f"there cant be more bank_workers than 16. Found: {config['bank_workers']}")
+
+        if not isinstance(config["client_timeout"], (int, float)):
+            raise InvalidConfiguration(f"client_timeout must be a number. Found: {type(config['client_timeout']).__name__}")
+
+        if config["client_timeout"] <= 0:
+            raise InvalidConfiguration(f"client_timeout must be positive. Found: {config['client_timeout']}")
+
+        if config["client_timeout"] > 60:
+            raise InvalidConfiguration(f"client_timeout cant be bigger than 60. Found: {config['client_timeout']}")
+
+        log.info("Configuration validation passed")
 
     def get_config(self) -> dict | None:
         return self._config

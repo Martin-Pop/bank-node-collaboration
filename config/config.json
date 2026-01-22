@@ -3,5 +3,6 @@
   "port" : 8080,
   "storage": "storage.db",
   "storage_timeout": 2.5,
-  "bank_workers": 2
+  "bank_workers": 2,
+  "client_timeout": 5
 }

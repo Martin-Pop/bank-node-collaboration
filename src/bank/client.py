@@ -39,7 +39,8 @@ class ClientConnection(Thread):
             self._active_connections.value += 1
 
         try:
-            self._socket.settimeout(60)  # load this
+            client_timeout = self._configuration.get('client_timeout', 60)
+            self._socket.settimeout(client_timeout)  # load this
 
             while True:
                 data = self._socket.recv(1024)
