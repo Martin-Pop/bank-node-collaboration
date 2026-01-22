@@ -62,7 +62,7 @@ class Worker(Process):
         self._log = logging.getLogger(f"WORKER-{self.pid}")
 
         try:
-            self._storage = BankStorage(self._configuration["storage"], self._configuration["storage_timeout"], self._cache, self._lock)
+            self._storage = BankStorage(self._configuration["storage_path"], self._configuration["storage_timeout"], self._cache, self._lock)
             self._factory = self._init_command_factory()
         except sqlite3.Error as e:
             self._log.critical(f"Worker could not connect to storage: {e}")

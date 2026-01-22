@@ -1,4 +1,5 @@
 import logging
+import os
 import socket
 from multiprocessing import Queue, Manager
 from bank.gateway import Gateway
@@ -30,15 +31,14 @@ class Bank:
 
         self._storage = None
 
-        success = prepare_storage_structure(self._config["storage"])
+        success = prepare_storage_structure(self._config["storage_path"])
         if not success:
             exit(1)
 
-        success = load_data_to_shared_memory(self._config["storage"], self._shared_memory)
+        success = load_data_to_shared_memory(self._config["storage_path"], self._shared_memory)
         if not success:
             exit(1)
 
-        log.info("Bank initialized")
         log.info("Bank initialized")
 
     def open_bank(self):
@@ -47,7 +47,7 @@ class Bank:
         """
         try:
             self._storage = BankStorage(
-                self._config["storage"],
+                self._config["storage_path"],
                 self._config["storage_timeout"],
                 self._shared_memory,
                 self._shared_lock
@@ -57,6 +57,9 @@ class Bank:
             self._worker_manager.start_workers()
 
             server_socket = self._gateway.open()
+            if server_socket is None:
+                raise Exception("Failed to open server socket. Gateway returned None.")
+
             self._start_listening_for_clients(server_socket)
         except BaseException as e:  # fallback
             log.critical(e)
@@ -84,6 +87,13 @@ class Bank:
                     continue
 
                 self._worker_manager.distribute_socket(client_socket)
+
+            except OSError as e:
+                if e.errno == 10038 or e.errno == 9:
+                    log.info("Listener socket closed, stopping loop.")
+                    break
+                log.error(f"Listener socket error: {e}")
+                break
 
             except Exception as e:
                 log.error(f"Listener error: {e}")

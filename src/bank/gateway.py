@@ -20,6 +20,7 @@ class Gateway:
         :return: new socket
         """
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self._server_socket.bind((self._host, self._port))
             self._server_socket.listen()
