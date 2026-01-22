@@ -3,6 +3,9 @@
 ### Added
 - New security feature to limit client requests with timed ban mechanism.
 
+### Fixed
+- Config path was loaded twice.
+
 ## [0.0.5] - 22. 1. 2026 - Jakub Šrámek
 
 ### Added

@@ -36,7 +36,6 @@ class ConfigurationManager:
                 self._validate_config(config)
 
                 config['storage'] = resolve_path(config['storage'])
-                config['storage'] = resolve_path(config['storage'])
 
                 return config
 

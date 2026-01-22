@@ -55,7 +55,7 @@ class ClientConnection(Thread):
             self._active_connections.value += 1
 
         try:
-            client_timeout = self._configuration.get('client_timeout', 60)
+            client_timeout = self._configuration.get('client_timeout', 5)
             self._socket.settimeout(client_timeout)
 
             while True:
