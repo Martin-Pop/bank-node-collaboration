@@ -1,10 +1,11 @@
 import logging
 import socket
-from multiprocessing import Queue, Pipe, managers
+from multiprocessing import Queue, Pipe, managers, Value
 
 from workers.worker import WorkerContext, Worker
 
 log = logging.getLogger("MANAGER")
+
 class WorkerManager:
     """
     Class that manages workers (Processes).
@@ -22,6 +23,8 @@ class WorkerManager:
         self._worker_pipes = []
         self._worker_index = 0
 
+        self._active_connections = Value('i', 0)
+
     def create_workers(self):
         """
         Creates new workers. New pipe between is created that provides way to pass data.
@@ -35,7 +38,8 @@ class WorkerManager:
                 log_queue=self._log_queue,
                 pipe=child_connection,
                 config=self._config,
-                lock=self._shared_lock
+                lock=self._shared_lock,
+                active_connections=self._active_connections
             )
 
             worker = Worker(context)
@@ -71,3 +75,10 @@ class WorkerManager:
                 self._worker_index += 1
             else:
                 self._worker_index = 0
+
+    def get_active_connections_count(self) -> int:
+        """
+        Gets the current number of active connections
+        :return: number of active connections
+        """
+        return self._active_connections.value

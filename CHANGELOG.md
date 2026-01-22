@@ -1,3 +1,11 @@
+## [0.0.4] - 21. 1. 2026 - Jakub Šrámek
+
+### Added
+- Web Monitoring Dashboard: Created a full GUI for real-time bank monitoring (account balances, total capital, and client count).
+- Live Data Updates: Integrated AJAX logic for automatic dashboard refreshes without reloading the page.
+- Safe Shutdown Mechanism: Added a dedicated button and API to safely terminate all processes and close database connections.
+- Connection Tracking: Implemented a shared counter using `multiprocessing.Value` to track active socket connections across workers.
+
 ## [0.0.3] - 21. 1. 2026 - Martin Pop
 
 ### Fixed

@@ -2,6 +2,7 @@ import logging
 from threading import Thread
 from dataclasses import dataclass
 import socket
+from multiprocessing import Value
 
 from commands.factory import CommandFactory
 from commands.parser import parse_command, is_command_for_us
@@ -13,6 +14,7 @@ class ClientContext:
     socket: socket.socket
     config: dict
     factory: CommandFactory
+    active_connections: Value
 
 class ClientConnection(Thread):
     """
@@ -25,6 +27,7 @@ class ClientConnection(Thread):
         self._socket = context.socket
         self._configuration = context.config
         self._factory = context.factory
+        self._active_connections = context.active_connections
 
         self.daemon = True
 
@@ -32,6 +35,9 @@ class ClientConnection(Thread):
         """
         Main client loop, handles data received from socket
         """
+        with self._active_connections.get_lock():
+            self._active_connections.value += 1
+
         try:
             self._socket.settimeout(60)  # load this
 
@@ -69,6 +75,8 @@ class ClientConnection(Thread):
         except Exception as e:
             log.error(f"Error handling client: {e}", exc_info=True)
         finally:
+            with self._active_connections.get_lock():
+                self._active_connections.value -= 1
             self._close_connection()
 
     def _close_connection(self):
