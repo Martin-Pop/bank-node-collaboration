@@ -2,6 +2,7 @@ import logging
 import socket
 from multiprocessing import Queue, Pipe, managers, Value
 
+from bank.security import SecurityGuard
 from workers.worker import WorkerContext, Worker
 
 log = logging.getLogger("MANAGER")
@@ -11,13 +12,14 @@ class WorkerManager:
     Class that manages workers (Processes).
     """
 
-    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy, shared_lock):
+    def __init__(self, config: dict, log_queue: Queue, shared_memory: managers.DictProxy, shared_lock, security: SecurityGuard):
 
         self._config = config
         self._worker_count = config["bank_workers"]
         self._log_queue = log_queue
         self._shared_memory = shared_memory
         self._shared_lock = shared_lock
+        self._security = security
 
         self._workers = []
         self._worker_pipes = []
@@ -39,7 +41,8 @@ class WorkerManager:
                 pipe=child_connection,
                 config=self._config,
                 lock=self._shared_lock,
-                active_connections=self._active_connections
+                active_connections=self._active_connections,
+                security=self._security
             )
 
             worker = Worker(context)

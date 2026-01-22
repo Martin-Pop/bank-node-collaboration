@@ -5,6 +5,7 @@ from multiprocessing import Queue, Process, managers, Value
 from multiprocessing.connection import PipeConnection
 from typing import Any
 
+from bank.security import SecurityGuard
 from commands.commands import (
 BankCodeCommand, CreateAccountCommand, RemoveAccountCommand,
 AccountDepositCommand, AccountWithdrawCommand, AccountBalanceCommand,
@@ -26,6 +27,7 @@ class WorkerContext:
     config: dict
     lock: Any  # AcquirerProxy - dynamically generated class ?
     active_connections: Value
+    security: SecurityGuard
 
 
 class Worker(Process):
@@ -42,6 +44,7 @@ class Worker(Process):
         self._configuration = worker_context.config
         self._lock = worker_context.lock
         self._active_connections = worker_context.active_connections
+        self._security = worker_context.security
 
         self._factory = None
         self._storage = None
@@ -117,7 +120,8 @@ class Worker(Process):
                     socket=client_socket,
                     config=self._configuration,
                     factory=self._factory,
-                    active_connections=self._active_connections
+                    active_connections=self._active_connections,
+                    security=self._security
                 )
 
                 client = ClientConnection(context)

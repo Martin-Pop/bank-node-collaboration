@@ -36,7 +36,6 @@ class ConfigurationManager:
                 self._validate_config(config)
 
                 config['storage'] = resolve_path(config['storage'])
-                config['storage'] = resolve_path(config['storage'])
 
                 return config
 
@@ -120,6 +119,18 @@ class ConfigurationManager:
 
         if config["client_timeout"] > 60:
             raise InvalidConfiguration(f"client_timeout cant be bigger than 60. Found: {config['client_timeout']}")
+
+        if not isinstance(config["max_requests_per_minute"], int):
+            raise InvalidConfiguration(f"max_requests_per_minute must be a number. Found: {type(config['max_requests_per_minute']).__name__}")
+
+        if config["max_requests_per_minute"] <= 0:
+            raise InvalidConfiguration(f"max_requests_per_minute must be positive number. Found: {config['max_requests_per_minute']}")
+
+        if not isinstance(config["max_bad_commands"], int):
+            raise InvalidConfiguration(f"max_bad_commands must be a number. Found: {type(config['max_bad_commands']).__name__}")
+
+        if config["max_bad_commands"] <= 0:
+            raise InvalidConfiguration(f"max_bad_commands must be positive number. Found: {config['max_bad_commands']}")
 
         log.info("Configuration validation passed")
 

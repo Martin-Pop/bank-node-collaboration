@@ -4,5 +4,7 @@
   "storage": "storage.db",
   "storage_timeout": 2.5,
   "bank_workers": 2,
-  "client_timeout": 5
+  "client_timeout": 5,
+  "max_requests_per_minute": 60,
+  "max_bad_commands": 5
 }
