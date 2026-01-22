@@ -1,3 +1,8 @@
+## [0.0.6] - 21. 1. 2026 - Martin Pop
+
+### Added
+- New security feature to limit client requests with timed ban mechanism.
+
 ## [0.0.5] - 22. 1. 2026 - Jakub Šrámek
 
 ### Added

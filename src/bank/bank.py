@@ -12,29 +12,33 @@ class Bank:
     """
     Main bank class
     """
-    def __init__(self, config: dict, log_queue: Queue):
+    def __init__(self, config: dict, log_queue: Queue, manager, security):
         self._config = config
         self._log_queue = log_queue
-
-        manager = Manager()
-        shared_memory = manager.dict()
-        shared_lock = manager.Lock()
+        self._shared_memory = manager.dict()
+        self._shared_lock = manager.Lock()
+        self._security = security
 
         self._gateway = Gateway(self._config["host"], self._config["port"])
-        self._worker_manager = WorkerManager(self._config, self._log_queue, shared_memory, shared_lock)
+        self._worker_manager = WorkerManager(
+            self._config,
+            self._log_queue,
+            self._shared_memory,
+            self._shared_lock,
+            self._security
+        )
 
-        self._shared_memory = shared_memory
-        self._shared_lock = shared_lock
         self._storage = None
 
         success = prepare_storage_structure(self._config["storage"])
         if not success:
             exit(1)
 
-        success = load_data_to_shared_memory(self._config["storage"], shared_memory)
+        success = load_data_to_shared_memory(self._config["storage"], self._shared_memory)
         if not success:
             exit(1)
 
+        log.info("Bank initialized")
         log.info("Bank initialized")
 
     def open_bank(self):
@@ -70,10 +74,19 @@ class Bank:
 
     def _start_listening_for_clients(self, server_socket: socket.socket):
         while True:
-            client_socket, client_address = server_socket.accept()
+            try:
+                client_socket, address = server_socket.accept()
+                ip_address = address[0]
 
-            # security here
-            self._worker_manager.distribute_socket(client_socket)
+                if self._security.is_banned(ip_address):
+                    log.warning(f"Connection rejected from banned IP: {ip_address}")
+                    client_socket.close()
+                    continue
+
+                self._worker_manager.distribute_socket(client_socket)
+
+            except Exception as e:
+                log.error(f"Listener error: {e}")
 
     def get_stats(self) -> dict:
         """

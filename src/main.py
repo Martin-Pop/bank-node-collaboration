@@ -4,10 +4,12 @@ import os
 from threading import Thread
 
 from bank.bank import Bank
+from bank.security import SecurityGuard
 from logger.configure import configure_logger_queue, add_queue_handler_to_root
 from utils.configurations import ConfigurationManager
 from utils.paths import resolve_path
 from web.app import create_flask_app
+from multiprocessing import Manager
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
@@ -27,18 +29,20 @@ if __name__ == "__main__":
 
         config['bank_code'] = config.get('host', '127.0.0.1')
 
-        bank = Bank(config, log_queue)
+        with Manager() as manager:
 
-        bank_thread = Thread(target=bank.open_bank, daemon=True)
-        bank_thread.start()
-        log.info("Bank logic started in background thread")
+            security = SecurityGuard(manager, 300)
+            bank = Bank(config, log_queue, manager, security)
+            bank_thread = Thread(target=bank.open_bank, daemon=True)
+            bank_thread.start()
+            log.info("Bank logic started in background thread")
 
-        web_port = config.get('web_port', 5000)
-        app = create_flask_app(bank, web_port)
+            web_port = config.get('web_port', 5000)
+            app = create_flask_app(bank, web_port)
 
-        log.info(f"Starting web interface on http://localhost:{web_port}")
+            log.info(f"Starting web interface on http://localhost:{web_port}")
 
-        app.run(host='0.0.0.0', port=web_port, debug=False, use_reloader=False)
+            app.run(host='0.0.0.0', port=web_port, debug=False, use_reloader=False)
 
     except KeyboardInterrupt:
         log.info("Shutting down by user...")

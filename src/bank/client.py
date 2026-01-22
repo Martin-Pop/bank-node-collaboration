@@ -1,9 +1,11 @@
 import logging
+import time
 from threading import Thread
 from dataclasses import dataclass
 import socket
 from multiprocessing import Value
 
+from bank.security import SecurityGuard
 from commands.factory import CommandFactory
 from commands.parser import parse_command, is_command_for_us
 
@@ -15,6 +17,7 @@ class ClientContext:
     config: dict
     factory: CommandFactory
     active_connections: Value
+    security: SecurityGuard
 
 class ClientConnection(Thread):
     """
@@ -28,6 +31,10 @@ class ClientConnection(Thread):
         self._configuration = context.config
         self._factory = context.factory
         self._active_connections = context.active_connections
+        self._security = context.security
+
+        self._MAX_RPM = self._configuration['max_requests_per_minute']
+        self._MAX_BAD_COMMANDS = self._configuration['max_bad_commands']
 
         self.daemon = True
 
@@ -35,16 +42,38 @@ class ClientConnection(Thread):
         """
         Main client loop, handles data received from socket
         """
+        try:
+            ip_address, port = self._socket.getpeername()
+        except OSError:
+            log.warning("Client disconnected before handling started.")
+            return
+
+        request_timestamps = []
+        bad_commands_count = 0
+
         with self._active_connections.get_lock():
             self._active_connections.value += 1
 
         try:
             client_timeout = self._configuration.get('client_timeout', 60)
-            self._socket.settimeout(client_timeout)  # load this
+            self._socket.settimeout(client_timeout)
 
             while True:
                 data = self._socket.recv(1024)
                 if not data:
+                    break
+
+                if self._security.is_banned(ip_address):
+                    self._socket.sendall("ER Banned\r\n".encode('utf-8'))
+                    break
+
+                now = time.time()
+                request_timestamps = [t for t in request_timestamps if t > now - 60]
+                request_timestamps.append(now)
+
+                if len(request_timestamps) > self._MAX_RPM:
+                    self._security.ban_ip(ip_address)
+                    self._socket.sendall("ER Rate limit exceeded\r\n".encode('utf-8'))
                     break
 
                 message = data.decode('utf-8').strip()
@@ -59,13 +88,26 @@ class ClientConnection(Thread):
                         cmd = self._factory.create(code, *args)
                         if cmd is None:
                             response = "ER Invalid command"
+                            bad_commands_count += 1
                         else:
                             response = cmd.execute()
-                    except TypeError: # when not enough args are passed
+                            bad_commands_count = max(0, bad_commands_count - 1)
+
+                    except TypeError:
                         response = "ER invalid arguments"
+                        bad_commands_count += 1
+
+                    except ValueError:
+                        response = "ER argument value error"
+                        bad_commands_count += 1
                 else:
                     #TODO: add relaying
                     response = "RELAYING"
+
+                if bad_commands_count >= self._MAX_BAD_COMMANDS:
+                    self._security.ban_ip(ip_address)
+                    self._socket.sendall("ER Too many errors. \r\n".encode('utf-8'))
+                    break
 
                 self._socket.sendall(f"{response}\r\n".encode('utf-8'))
 
