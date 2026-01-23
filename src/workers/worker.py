@@ -7,16 +7,17 @@ from typing import Any
 
 from bank.security import SecurityGuard
 from commands.commands import (
-BankCodeCommand, CreateAccountCommand, RemoveAccountCommand,
-AccountDepositCommand, AccountWithdrawCommand, AccountBalanceCommand,
-BankAmountCommand, BankNumberCommand)
+    BankCodeCommand, CreateAccountCommand, RemoveAccountCommand,
+    AccountDepositCommand, AccountWithdrawCommand, AccountBalanceCommand,
+    BankAmountCommand, BankNumberCommand, RobberyPlanCommand)
 
-from commands.contexts import BankCodeContext, StorageContext
+from commands.contexts import BankCodeContext, StorageContext, NetworkContext
 from commands.factory import CommandFactory
 
 from bank.client import ClientConnection, ClientContext
 from bank.storages import BankStorage
 from logger.configure import add_queue_handler_to_root
+from network.scanner import NetworkScanner
 
 
 @dataclass
@@ -90,6 +91,15 @@ class Worker(Process):
 
         bank_code = self._configuration['bank_code']
 
+        network_scanner = NetworkScanner(
+            port_range=tuple(self._configuration.get('network_scan_port_range')),
+            timeout=self._configuration.get('network_timeout'),
+            subnet=self._configuration.get('network_scan_subnet'),
+            security=self._security
+        )
+
+        network_context = NetworkContext(our_ip=bank_code, scanner=network_scanner)
+
         bank_code_context = BankCodeContext(bank_code)
         factory.register("BC", BankCodeCommand, bank_code_context)
 
@@ -101,6 +111,7 @@ class Worker(Process):
         factory.register("AB", AccountBalanceCommand, storage_context)
         factory.register("BA", BankAmountCommand, storage_context)
         factory.register("BN", BankNumberCommand, storage_context)
+        factory.register("RP", RobberyPlanCommand, network_context)
 
         return factory
 
