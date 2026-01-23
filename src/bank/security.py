@@ -6,6 +6,7 @@ log = logging.getLogger("SECURITY")
 class SecurityGuard:
     def __init__(self, manager, ban_duration):
         self._blacklist = manager.dict()
+        self._known_banks = manager.dict()
         self._lock = manager.Lock()
         self.BAN_DURATION = ban_duration
 
@@ -27,3 +28,10 @@ class SecurityGuard:
             self._blacklist[ip_address] = end_time
 
         log.warning(f"Banning {ip_address} for {self.BAN_DURATION} seconds")
+
+    def save_known_port(self, ip: str, port: int):
+        with self._lock:
+            self._known_banks[ip] = port
+
+    def get_known_port(self, ip: str) -> int:
+        return self._known_banks.get(ip)
