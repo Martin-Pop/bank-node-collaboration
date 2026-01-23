@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
-from commands.contexts import CommandContext, BankCodeContext, StorageContext
+from commands.contexts import CommandContext, BankCodeContext, StorageContext, NetworkContext
 from commands.parser import parse_address
 
 T = TypeVar('T', bound=CommandContext)
@@ -185,3 +185,47 @@ class BankNumberCommand(BaseCommand[StorageContext]):
     def execute(self) -> str:
         count = self._context.storage.get_client_count()
         return self._success_response(str(count))
+
+
+class RobberyPlanCommand(BaseCommand[NetworkContext]):
+    """
+    Creates a robbery plan - scans network and finds optimal banks to rob
+    """
+
+    def __init__(self, code: str, context: NetworkContext, target_amount: str):
+        super().__init__(code, context)
+        try:
+            self._target_amount = int(target_amount)
+            if self._target_amount < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            self._target_amount = None
+
+    def execute(self) -> str:
+        if self._target_amount is None:
+            return self._error_response("Invalid target amount")
+
+        try:
+            banks = self._context.scanner.scan_network(self._context.our_ip)
+
+            if not banks:
+                return self._error_response("No banks found in network")
+
+            targets = self._context.scanner.find_robbery_targets(self._target_amount, banks)
+
+            if not targets:
+                return self._error_response("Could not create robbery plan")
+
+            total_amount = sum(b.total_amount for b in targets)
+            total_clients = sum(b.client_count for b in targets)
+            bank_ips = ", ".join(b.ip for b in targets)
+
+            message = (
+                f"To achieve ${self._target_amount:,}, rob banks {bank_ips}. "
+                f"You will have to steal: ${total_amount:,}. Affected clients: {total_clients}"
+            )
+
+            return self._success_response(message)
+
+        except Exception as e:
+            return self._error_response(f"Error creating robbery plan: {str(e)}")
