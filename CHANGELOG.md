@@ -1,10 +1,18 @@
-## [0.0.6] - 21. 1. 2026 - Martin Pop
+## [0.0.6] - 22. 1. 2026 - Martin Pop
 
 ### Added
 - New security feature to limit client requests with timed ban mechanism.
+- Path resolver that finds correct folder paths. This ensures that folders for logs, db files, public, configs are resolved correctly when compiled with PyInstaller.
+- Config for web interface address and port, ban duration + validation
 
 ### Fixed
 - Config path was loaded twice.
+- Handling when os refuses to bind socket
+
+### Changed
+- Renamed 'storage' to 'storage_path' in config
+- Moved static and templates folder to public folder, so it can be accessed with the new path resolver
+- Flask no longer logs info (errors only)
 
 ## [0.0.5] - 22. 1. 2026 - Jakub Šrámek
 

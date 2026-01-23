@@ -35,7 +35,7 @@ class ConfigurationManager:
                 config = json.load(config_file)
                 self._validate_config(config)
 
-                config['storage'] = resolve_path(config['storage'])
+                config['storage_path'] = resolve_path(config['storage_path'])
 
                 return config
 
@@ -58,10 +58,15 @@ class ConfigurationManager:
         required_keys = [
             "host",
             "port",
-            "storage",
+            "storage_path",
             "storage_timeout",
             "bank_workers",
-            "client_timeout"
+            "client_timeout",
+            "max_requests_per_minute",
+            "max_bad_commands",
+            "ban_duration",
+            "monitoring_host",
+            "monitoring_port"
         ]
 
         missing_keys = [key for key in required_keys if key not in config]
@@ -82,7 +87,7 @@ class ConfigurationManager:
         if not (1 <= config["port"] <= 65535):
             raise InvalidConfiguration(f"Port must be in range from 1 to 65535. Found: {config["port"]}")
 
-        storage_path = config["storage"]
+        storage_path = config["storage_path"]
         if not isinstance(storage_path, str) or not storage_path.strip():
             raise InvalidConfiguration("Storage path must be a non-empty string")
 
@@ -131,6 +136,23 @@ class ConfigurationManager:
 
         if config["max_bad_commands"] <= 0:
             raise InvalidConfiguration(f"max_bad_commands must be positive number. Found: {config['max_bad_commands']}")
+
+        if not isinstance(config["ban_duration"], int):
+            raise InvalidConfiguration(f"ban_duration must be a number. Found: {type(config['ban_duration']).__name__}")
+
+        if config["ban_duration"] <= 0:
+            raise InvalidConfiguration(f"ban_duration must be positive number. Found: {config['ban_duration']}")
+
+        try:
+            ip_obj = ipaddress.ip_address(config["monitoring_host"])
+            if not isinstance(ip_obj, ipaddress.IPv4Address):
+                raise ValueError
+
+        except ValueError:
+            raise InvalidConfiguration("monitoring_host must be a valid IPv4 address.")
+
+        if not (1 <= config["monitoring_port"] <= 65535):
+            raise InvalidConfiguration(f"monitoring_port must be in range from 1 to 65535. Found: {config["port"]}")
 
         log.info("Configuration validation passed")
 
