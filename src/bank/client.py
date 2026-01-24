@@ -86,7 +86,7 @@ class ClientConnection(Thread):
                 code, args = parse_command(message)
 
                 is_for_our_bank = is_command_for_us(
-                    self._configuration['bank_code'],
+                    self._configuration['host'],
                     args[0] if args else None
                 )
 
