@@ -1,6 +1,7 @@
 ## [0.0.7] - 23. 1. 2026 - Jakub Šrámek
 
 ### Added
+- Command Proxy Relay for AD, AW, and AB commands to support inter-bank communication
 - Multithreaded network scanner for fast bank discovery.
 - Robbery Plan (RP) command to find the best targets.
 - Port caching in SecurityGuard to speed up connections.
