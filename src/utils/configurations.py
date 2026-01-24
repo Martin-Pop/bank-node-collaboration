@@ -154,6 +154,30 @@ class ConfigurationManager:
         if not (1 <= config["monitoring_port"] <= 65535):
             raise InvalidConfiguration(f"monitoring_port must be in range from 1 to 65535. Found: {config["port"]}")
 
+        net_range = config["network_scan_port_range"]
+        if not isinstance(net_range, list) or len(net_range) != 2:
+            raise InvalidConfiguration("network_scan_port_range must be a list of two integers [start, end]")
+
+        start_p, end_p = net_range
+        if not (1 <= start_p <= 65535) or not (1 <= end_p <= 65535):
+            raise InvalidConfiguration("Scan ports must be between 1 and 65535")
+        if start_p > end_p:
+            raise InvalidConfiguration("Scan port start cannot be higher than end")
+
+        subnet = config["network_scan_subnet"]
+        if not isinstance(subnet, str) or subnet.count('.') != 2:
+            raise InvalidConfiguration("network_scan_subnet must be in format 'X.Y.Z' ")
+
+        if not isinstance(config["network_timeout"], (int, float)):
+            raise InvalidConfiguration(
+                f"network_timeout must be a number. Found: {type(config['network_timeout']).__name__}")
+
+        if config["network_timeout"] <= 0:
+            raise InvalidConfiguration(f"network_timeout must be positive. Found: {config['network_timeout']}")
+
+        if config["network_timeout"] > 15:
+            raise InvalidConfiguration(f"network_timeout cant be bigger than 15. Found: {config['network_timeout']}")
+
         log.info("Configuration validation passed")
 
     def get_config(self) -> dict | None:

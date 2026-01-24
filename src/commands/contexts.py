@@ -20,3 +20,8 @@ class BankCodeContext(CommandContext):
 class StorageContext(CommandContext):
     bank_code: str
     storage: BankStorage
+
+@dataclass
+class NetworkContext(CommandContext):
+    our_ip: str
+    scanner: 'NetworkScanner'

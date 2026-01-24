@@ -1,3 +1,14 @@
+## [0.0.7] - 23. 1. 2026 - Jakub Šrámek
+
+### Added
+- Multithreaded network scanner for fast bank discovery.
+- Robbery Plan (RP) command to find the best targets.
+- Port caching in SecurityGuard to speed up connections.
+- Specialized contexts for cleaner command registration.
+
+### Changed
+- Refactored CommandFactory initialization in Worker.
+
 ## [0.0.6] - 22. 1. 2026 - Martin Pop
 
 ### Added

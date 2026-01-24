@@ -1,5 +1,5 @@
 {
-  "host": "127.0.0.5",
+  "host": "10.0.0.0",
   "port" : 8080,
   "storage_path": "storage.db",
   "storage_timeout": 2.5,
@@ -9,5 +9,8 @@
   "max_bad_commands": 5,
   "ban_duration": 300,
   "monitoring_host": "127.0.0.1",
-  "monitoring_port": 8090
+  "monitoring_port": 8090,
+  "network_scan_port_range": [8080, 8090],
+  "network_timeout": 2,
+  "network_scan_subnet": "10.0.0"
 }
