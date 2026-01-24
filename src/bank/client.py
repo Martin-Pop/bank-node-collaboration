@@ -137,31 +137,23 @@ class ClientConnection(Thread):
         :return: Response string from the target bank or an error message
         """
 
-        if code not in ['AD', 'AW', 'AB', 'AR', 'BC']:
+        if code not in ['AD', 'AW', 'AB']:
             return "ER Command cannot be proxied"
 
-        if not args and code != 'BC':
+        if not args:
             return "ER Missing arguments for proxy request"
 
-        target_ip = args[0].split('/')[-1] if args else None
-
-        if code == 'BC' and not target_ip:
-            return "ER Cannot proxy BC without target IP"
-
-        if not target_ip:
-            return "ER Invalid address format"
-
-        cached_port = self._security.get_known_port(target_ip)
-
-        scan_config = self._configuration.get('network_scan_port_range', [65525, 65535])
-        port_range = range(scan_config[0], scan_config[1] + 1)
-
-        ports_to_try = [cached_port] if cached_port else port_range
-
+        target_ip = args[0].split('/')[-1]
         original_message = f"{code} {' '.join(args)}".strip()
 
+        scan_config = self._configuration.get('network_scan_port_range', [8080, 8081])
+        port_range = range(scan_config[0], scan_config[1] + 1)
+
+        cached_port = self._security.get_known_port(target_ip)
+        ports_to_try = [cached_port] if cached_port else port_range
+
         for port in ports_to_try:
-            log.debug(f"Relaying to {target_ip}:{port}")
+            log.debug(f"Relaying {code} to {target_ip}:{port}")
             response = self._connector.send_command(target_ip, port, original_message)
 
             if response and not response.startswith("ER"):
@@ -169,7 +161,6 @@ class ClientConnection(Thread):
                 return response
 
             if cached_port and port == cached_port:
-                log.info(f"Cached port {port} for {target_ip} failed, scanning range")
                 return self._scan_ports_and_relay(target_ip, original_message)
 
         return "ER Target bank unreachable"
@@ -182,7 +173,7 @@ class ClientConnection(Thread):
         :return: Response from the discovered bank or error if not found
         """
 
-        scan_config = self._configuration.get('network_scan_port_range', [65525, 65535])
+        scan_config = self._configuration.get('network_scan_port_range', [8080, 8081])
         for port in range(scan_config[0], scan_config[1] + 1):
             res = self._connector.send_command(ip, port, message)
             if res and not res.startswith("ER"):
