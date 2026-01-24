@@ -118,6 +118,7 @@ class Bank:
             "active_connections": self._worker_manager.get_active_connections_count()
         }
 
+    #deprecated
     def get_all_accounts(self) -> list:
         """
         Gets all accounts with their balances
@@ -136,3 +137,44 @@ class Bank:
                 })
 
         return accounts
+
+    def get_accounts_paged(self, offset: int, limit: int) -> list:
+        """
+        Gets a subset of accounts based on parameters,
+        :param offset: number of items to skip
+        :param limit: max number of items to return
+        :return: list of dictionaries with account info
+        """
+        if not self._storage:
+            return []
+
+        with self._shared_lock:
+            snapshot = list(self._shared_memory.items())
+
+        snapshot.sort(key=lambda x: x[0])
+        paged_items = snapshot[offset: offset + limit]
+
+        accounts = []
+        bank_code = self._config.get('bank_code', 'N/A')
+
+        for account_number, balance in paged_items:
+            accounts.append({
+                "account_number": account_number,
+                "bank_code": bank_code,
+                "balance": balance
+            })
+
+        return accounts
+
+    def get_accounts_count(self) -> int:
+        """
+        Gets the total number of active accounts.
+        """
+        if not self._storage:
+            return 0
+
+        with self._shared_lock:
+            return len(self._shared_memory)
+
+    def get_gateway_address(self) -> str:
+        return self._config["host"] + ":" + self._config["port"]
