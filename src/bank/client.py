@@ -146,7 +146,7 @@ class ClientConnection(Thread):
         target_ip = args[0].split('/')[-1]
         original_message = f"{code} {' '.join(args)}".strip()
 
-        scan_config = self._configuration.get('network_scan_port_range', [8080, 8081])
+        scan_config = self._configuration.get('network_scan_port_range', [65525, 65535])
         port_range = range(scan_config[0], scan_config[1] + 1)
 
         cached_port = self._security.get_known_port(target_ip)
@@ -173,7 +173,7 @@ class ClientConnection(Thread):
         :return: Response from the discovered bank or error if not found
         """
 
-        scan_config = self._configuration.get('network_scan_port_range', [8080, 8081])
+        scan_config = self._configuration.get('network_scan_port_range', [65525, 65535])
         for port in range(scan_config[0], scan_config[1] + 1):
             res = self._connector.send_command(ip, port, message)
             if res and not res.startswith("ER"):
