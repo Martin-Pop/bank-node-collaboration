@@ -1,3 +1,16 @@
+## [0.0.8] - 24. 1. 2026 - Martin Pop
+
+### Added
+- Opening / Closing bank via web monitoring
+- New page for application shutdown
+- Bank account list with paging
+
+### Changed
+- Separated list of accounts in bank from monitoring
+
+### Fixed
+- Bank uptime not showing real bank uptime.
+
 ## [0.0.7] - 23. 1. 2026 - Jakub Šrámek
 
 ### Added
