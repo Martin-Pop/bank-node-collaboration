@@ -7,6 +7,7 @@ from workers.worker import WorkerContext, Worker
 
 log = logging.getLogger("MANAGER")
 
+
 class WorkerManager:
     """
     Class that manages workers (Processes).
@@ -31,6 +32,9 @@ class WorkerManager:
         """
         Creates new workers. New pipe between is created that provides way to pass data.
         """
+        self._workers.clear()
+        self._worker_pipes.clear()
+        self._worker_index = 0
 
         for _ in range(self._worker_count):
             parent_connection, child_connection = Pipe()
@@ -53,24 +57,46 @@ class WorkerManager:
         """
         Starts all workers.
         """
+        if not self._workers:
+            log.warning("No workers to start. Did you call create_workers()?")
+            return
+
         for worker in self._workers:
-            worker.start()
+            if not worker.is_alive():
+                worker.start()
 
     def stop_workers(self):
         """
         Stops all workers by sending None through the pipe.
         """
         for pipe in self._worker_pipes:
-            pipe.send(None)
+            try:
+                pipe.send(None)
+            except OSError:
+                pass
+
+        for worker in self._workers:
+            if worker.is_alive():
+                worker.join(timeout=1.0)
+                if worker.is_alive():
+                    worker.terminate()
+
+        self._workers.clear()
+        self._worker_pipes.clear()
 
     def distribute_socket(self, client_socket: socket.socket):
         """
         Distributes socket between workers, socket in this process must be closed.
         :param client_socket: socket to distribute.
         """
+        if not self._worker_pipes:
+            log.critical("No worker pipes available to distribute socket")
+            client_socket.close()
+            return
+
         try:
             self._worker_pipes[self._worker_index].send(client_socket)
-        except IndexError:
+        except (IndexError, OSError):
             log.critical("Worker process was not found - its either dead or none were created")
         finally:
             client_socket.close()

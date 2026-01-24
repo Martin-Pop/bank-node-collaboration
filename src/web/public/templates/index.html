@@ -51,7 +51,11 @@
         <div class="controls">
             <a href="{{ url_for('accounts.index') }}" class="btn">View Accounts</a>
             <button onclick="refreshData()">Refresh</button>
-            <button class="btn-shutdown" onclick="confirmShutdown()">Shutdown</button>
+
+            <button id="btn-start" onclick="controlBank('start')">Open Bank</button>
+            <button id="btn-stop" onclick="controlBank('stop')"> Close Bank</button>
+
+            <button class="btn-shutdown" onclick="confirmAppShutdown()">Shutdown App</button>
         </div>
     </div>
 

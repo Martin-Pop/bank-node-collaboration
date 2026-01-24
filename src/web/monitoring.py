@@ -1,7 +1,8 @@
 import logging
 import os
 import signal
-from flask import Blueprint, render_template, jsonify, current_app
+from threading import Thread
+from flask import Blueprint, render_template, jsonify, current_app, request
 
 log = logging.getLogger("WEB")
 
@@ -33,6 +34,38 @@ def get_stats():
         return jsonify({"error": str(e)}), 500
 
 
+@monitoring_bp.route('/api/control', methods=['POST'])
+def control_bank():
+    """
+    Endpoints to Start or Stop the bank logic without killing the app.
+    Payload: {"action": "start"} or {"action": "stop"}
+    """
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        bank = current_app.config['BANK']
+
+        if action == 'start':
+            if getattr(bank, '_is_open', False):
+                return jsonify({"message": "Bank is already running"}), 200
+
+            t = Thread(target=bank.open_bank, daemon=True)
+            t.start()
+            return jsonify({"status": "started"}), 200
+
+        elif action == 'stop':
+            log.info("Stopping bank via web control...")
+            bank.close_bank()
+            return jsonify({"status": "stopped"}), 200
+
+        else:
+            return jsonify({"error": "Invalid action"}), 400
+
+    except Exception as e:
+        log.error(f"Error controlling bank: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @monitoring_bp.route('/api/shutdown', methods=['POST'])
 def shutdown():
     try:
@@ -45,7 +78,6 @@ def shutdown():
             time.sleep(1)
             os.kill(os.getpid(), signal.SIGTERM)
 
-        from threading import Thread
         Thread(target=delayed_shutdown, daemon=True).start()
 
         return jsonify({"status": "shutting_down"}), 200

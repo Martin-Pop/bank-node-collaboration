@@ -31,6 +31,7 @@ class Bank:
 
         self._storage = None
         self._start_time = None
+        self._is_open = False
 
         success = prepare_storage_structure(self._config["storage_path"])
         if not success:
@@ -46,6 +47,10 @@ class Bank:
         """
         Bank gets open by accepting clients from gateway (main loop).
         """
+
+        if self._is_open:
+            return
+
         try:
             self._storage = BankStorage(
                 self._config["storage_path"],
@@ -62,6 +67,7 @@ class Bank:
                 raise Exception("Failed to open server socket. Gateway returned None.")
 
             self._start_time = time.time()
+            self._is_open = True
             self._start_listening_for_clients(server_socket)
         except BaseException as e:  # fallback
             log.critical(e)
@@ -70,11 +76,16 @@ class Bank:
         """
         Closes bank - stops workers, closes gateway and storage
         """
+
+        if not self._is_open:
+            return
+
         log.info("Closing bank...")
         self._worker_manager.stop_workers()
         self._gateway.close()
         if self._storage:
             self._storage.close()
+        self._is_open = False
         log.info("Bank closed successfully")
 
     def _start_listening_for_clients(self, server_socket: socket.socket):
@@ -105,19 +116,22 @@ class Bank:
         Gets bank statistics for monitoring
         :return: dictionary with bank stats
         """
-        if not self._storage:
+
+        if not self._storage or not self._is_open:
             return {
                 "bank_code": self._config.get('bank_code', 'N/A'),
                 "total_amount": 0,
                 "client_count": 0,
-                "active_connections": 0
+                "active_connections": 0,
+                "is_open": self._is_open
             }
 
         return {
             "bank_code": self._config.get('bank_code', 'N/A'),
             "total_amount": self._storage.get_total_amount(),
             "client_count": self._storage.get_client_count(),
-            "active_connections": self._worker_manager.get_active_connections_count()
+            "active_connections": self._worker_manager.get_active_connections_count(),
+            "is_open": self._is_open
         }
 
     #deprecated
