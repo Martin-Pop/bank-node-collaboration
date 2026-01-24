@@ -1,6 +1,6 @@
 import logging
-import os
 import socket
+import time
 from multiprocessing import Queue, Manager
 from bank.gateway import Gateway
 from bank.storages import prepare_storage_structure, load_data_to_shared_memory, BankStorage
@@ -30,6 +30,7 @@ class Bank:
         )
 
         self._storage = None
+        self._start_time = None
 
         success = prepare_storage_structure(self._config["storage_path"])
         if not success:
@@ -60,6 +61,7 @@ class Bank:
             if server_socket is None:
                 raise Exception("Failed to open server socket. Gateway returned None.")
 
+            self._start_time = time.time()
             self._start_listening_for_clients(server_socket)
         except BaseException as e:  # fallback
             log.critical(e)
@@ -177,4 +179,7 @@ class Bank:
             return len(self._shared_memory)
 
     def get_gateway_address(self) -> str:
-        return self._config["host"] + ":" + self._config["port"]
+        return self._config["host"] + ":" + str(self._config["port"])
+
+    def get_start_time(self):
+        return self._start_time
