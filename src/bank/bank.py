@@ -1,6 +1,6 @@
 import logging
-import os
 import socket
+import time
 from multiprocessing import Queue, Manager
 from bank.gateway import Gateway
 from bank.storages import prepare_storage_structure, load_data_to_shared_memory, BankStorage
@@ -30,6 +30,8 @@ class Bank:
         )
 
         self._storage = None
+        self._start_time = None
+        self._is_open = False
 
         success = prepare_storage_structure(self._config["storage_path"])
         if not success:
@@ -45,6 +47,10 @@ class Bank:
         """
         Bank gets open by accepting clients from gateway (main loop).
         """
+
+        if self._is_open:
+            return
+
         try:
             self._storage = BankStorage(
                 self._config["storage_path"],
@@ -60,6 +66,8 @@ class Bank:
             if server_socket is None:
                 raise Exception("Failed to open server socket. Gateway returned None.")
 
+            self._start_time = time.time()
+            self._is_open = True
             self._start_listening_for_clients(server_socket)
         except BaseException as e:  # fallback
             log.critical(e)
@@ -68,11 +76,16 @@ class Bank:
         """
         Closes bank - stops workers, closes gateway and storage
         """
+
+        if not self._is_open:
+            return
+
         log.info("Closing bank...")
         self._worker_manager.stop_workers()
         self._gateway.close()
         if self._storage:
             self._storage.close()
+        self._is_open = False
         log.info("Bank closed successfully")
 
     def _start_listening_for_clients(self, server_socket: socket.socket):
@@ -103,21 +116,25 @@ class Bank:
         Gets bank statistics for monitoring
         :return: dictionary with bank stats
         """
-        if not self._storage:
+
+        if not self._storage or not self._is_open:
             return {
                 "bank_code": self._config.get('bank_code', 'N/A'),
                 "total_amount": 0,
                 "client_count": 0,
-                "active_connections": 0
+                "active_connections": 0,
+                "is_open": self._is_open
             }
 
         return {
             "bank_code": self._config.get('bank_code', 'N/A'),
             "total_amount": self._storage.get_total_amount(),
             "client_count": self._storage.get_client_count(),
-            "active_connections": self._worker_manager.get_active_connections_count()
+            "active_connections": self._worker_manager.get_active_connections_count(),
+            "is_open": self._is_open
         }
 
+    #deprecated
     def get_all_accounts(self) -> list:
         """
         Gets all accounts with their balances
@@ -136,3 +153,47 @@ class Bank:
                 })
 
         return accounts
+
+    def get_accounts_paged(self, offset: int, limit: int) -> list:
+        """
+        Gets a subset of accounts based on parameters,
+        :param offset: number of items to skip
+        :param limit: max number of items to return
+        :return: list of dictionaries with account info
+        """
+        if not self._storage:
+            return []
+
+        with self._shared_lock:
+            snapshot = list(self._shared_memory.items())
+
+        snapshot.sort(key=lambda x: x[0])
+        paged_items = snapshot[offset: offset + limit]
+
+        accounts = []
+        bank_code = self._config.get('bank_code', 'N/A')
+
+        for account_number, balance in paged_items:
+            accounts.append({
+                "account_number": account_number,
+                "bank_code": bank_code,
+                "balance": balance
+            })
+
+        return accounts
+
+    def get_accounts_count(self) -> int:
+        """
+        Gets the total number of active accounts.
+        """
+        if not self._storage:
+            return 0
+
+        with self._shared_lock:
+            return len(self._shared_memory)
+
+    def get_gateway_address(self) -> str:
+        return self._config["host"] + ":" + str(self._config["port"])
+
+    def get_start_time(self):
+        return self._start_time
