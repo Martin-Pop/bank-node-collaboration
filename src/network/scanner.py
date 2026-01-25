@@ -103,21 +103,35 @@ class NetworkScanner:
         :param banks: List of available banks
         :return: List of banks to rob
         """
-        if not banks:
+        if not banks or target_amount <= 0:
             return []
 
-        banks_sorted = sorted(banks, key=lambda b: b.total_amount / max(b.client_count, 1), reverse=True)
+        available_banks = sorted(banks, key=lambda b: b.total_amount / max(b.client_count, 1), reverse=True)
 
         selected = []
-        total_stolen = 0
-        total_clients = 0
+        current_stolen = 0
 
-        for bank in banks_sorted:
-            if total_stolen >= target_amount:
+        while current_stolen < target_amount and available_banks:
+            remaining_needed = target_amount - current_stolen
+
+            best_single_filler = None
+            min_filler_clients = float('inf')
+
+            for bank in available_banks:
+                if bank.total_amount >= remaining_needed:
+                    if bank.client_count < min_filler_clients:
+                        min_filler_clients = bank.client_count
+                        best_single_filler = bank
+
+            top_efficiency_bank = available_banks[0]
+
+            if best_single_filler and best_single_filler.client_count <= top_efficiency_bank.client_count:
+                selected.append(best_single_filler)
+                current_stolen += best_single_filler.total_amount
                 break
-
-            selected.append(bank)
-            total_stolen += bank.total_amount
-            total_clients += bank.client_count
+            else:
+                selected.append(top_efficiency_bank)
+                current_stolen += top_efficiency_bank.total_amount
+                available_banks.pop(0)
 
         return selected
