@@ -1,3 +1,15 @@
+## [0.0.10] - 25. 1. 2026 - Martin Pop
+
+### Added
+- Readme documentation
+- requirements.txt file
+
+### Changed
+- Removed unnecessary logging from clients.
+
+### Fixed
+- App not shutting down properly and leaving zombie processes
+
 ## [0.0.9] - 25. 1. 2026 - Jakub Šrámek
 
 ### Changed

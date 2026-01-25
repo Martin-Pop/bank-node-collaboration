@@ -1,6 +1,4 @@
 import logging
-import os
-import signal
 from threading import Thread
 from flask import Blueprint, render_template, jsonify, current_app, request
 
@@ -72,15 +70,13 @@ def shutdown():
         log.info("Shutdown request received")
         bank = current_app.config['BANK']
         bank.close_bank()
+        stop_event = current_app.config.get('STOP_EVENT')
 
-        def delayed_shutdown():
-            import time
-            time.sleep(1)
-            os.kill(os.getpid(), signal.SIGTERM)
-
-        Thread(target=delayed_shutdown, daemon=True).start()
-
-        return jsonify({"status": "shutting_down"}), 200
+        if stop_event:
+            stop_event.set()
+            return jsonify({"status": "shutting_down"}), 200
+        else:
+            return jsonify({"error": "Stop event not configured"}), 500
     except Exception as e:
         log.error(f"Error during shutdown: {e}")
         return jsonify({"error": str(e)}), 500

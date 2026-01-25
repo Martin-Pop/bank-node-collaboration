@@ -118,9 +118,9 @@ class ClientConnection(Thread):
                 self._socket.sendall(f"{response}\r\n".encode('utf-8'))
 
         except socket.timeout:
-            log.warning("Client timed out.")
+            pass #log.warning("Client timed out.")
         except ConnectionResetError:
-            log.warning("Client connection reset.")
+            pass #log.warning("Client connection reset.")
         except Exception as e:
             log.error(f"Error handling client: {e}", exc_info=True)
         finally:
