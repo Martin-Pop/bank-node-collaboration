@@ -1,3 +1,8 @@
+## [0.0.9] - 25. 1. 2026 - Jakub Šrámek
+
+### Changed
+- Improved robbery plan heuristic to minimize affected clients and prevent goal overshooting.
+
 ## [0.0.8] - 24. 1. 2026 - Martin Pop
 
 ### Added
