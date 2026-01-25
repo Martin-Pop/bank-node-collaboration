@@ -1,3 +1,55 @@
+# BankNode Server
+
+Concurrent TCP banking server simulation utilizing **multiprocessing** for parallel client handling and
+**Flask** for real-time monitoring. Data is persistently stored in **SQLite**.
+
+## Features
+
+-   **Multiprocessing:** Non-blocking concurrent client handling.
+-   **Persistence:** SQLite database storage.
+-   **Monitoring:** Web dashboard for stats and control (Flask).
+-   **Security:** Rate limiting & IP banning.
+
+## Requirements
+- Python 3.8+
+- Pip (Python Package Installer)
+- Libraries `flask`, `pyinstaller`
+
+## Installation
+
+### Option A: Download Release
+
+Download the latest release from the Releases section and run it.
+
+### Option B: Run from Source
+
+1.  **Install Dependencies:**
+    ```
+    pip install -r requirements.txt
+    ```
+2.  **Run Application:**
+    ```
+    python src/main/app.py
+    ```
+3.  **Build Exe (Optional):**
+    ```
+    pyinstaller --noconfirm --onedir --windowed --name "BankNode" --paths "." --add-data "src/web/public;public" src/main.py
+    ```
+    Copy the config folder `config` inside your newly build folder `dist/BankNode`
+
+## Commands
+| Name                   | Code | Call Syntax                  | Success Response | Error Response |
+|:-----------------------|:-----|:-----------------------------| :--- | :--- |
+| Bank code              | BC   | `BC`                         | `BC <ip>` | `ER <message>` |
+| Account create         | AC   | `AC`                         | `AC <account>/<ip>` | `ER <message>` |
+| Account deposit        | AD   | `AD <account>/<ip> <number>` | `AD` | `ER <message>` |
+| Account withdrawal     | AW   | `AW <account>/<ip> <number>` | `AW` | `ER <message>` |
+| Account balance        | AB   | `AB <account>/<ip>`          | `AB <number>` | `ER <message>` |
+| Account remove         | AR   | `AR <account>/<ip>`          | `AR` | `ER <message>` |
+| Bank (total) amount    | BA   | `BA`                         | `BA <number>` | `ER <message>` |
+| Bank number of clients | BN   | `BN`                         | `BN <number>` | `ER <message>` |
+| Robbery Plan           | RP   | `RP <number>`                | `RP <message>` | `ER <message>` |
+
 ## Configuration
 
 **Location:** `config/config.json`
