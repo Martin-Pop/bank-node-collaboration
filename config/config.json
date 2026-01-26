@@ -11,6 +11,6 @@
   "monitoring_host": "127.0.0.1",
   "monitoring_port": 8090,
   "network_scan_port_range": [8080, 8090],
-  "network_timeout": 2,
-  "network_scan_subnet": "10.0.0"
+  "network_scan_ip_range": ["10.0.0.1", "10.0.0.2"],
+  "network_timeout": 2
 }
