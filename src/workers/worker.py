@@ -94,7 +94,7 @@ class Worker(Process):
         network_scanner = NetworkScanner(
             port_range=tuple(self._configuration.get('network_scan_port_range')),
             timeout=self._configuration.get('network_timeout'),
-            subnet=self._configuration.get('network_scan_subnet'),
+            ip_range=self._configuration.get('network_scan_ip_range'),
             security=self._security
         )
 

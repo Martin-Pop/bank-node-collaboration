@@ -25,7 +25,7 @@ class NetworkScanner:
     Scans P2P network for active banks
     """
 
-    def __init__(self, port_range: tuple, timeout: float = 2.0, subnet: str = "10.1.2", security=None):
+    def __init__(self, port_range: tuple, timeout: float = 2.0, ip_range: list = None, security=None):
         """
         :param port_range: Tuple (min_port, max_port) to scan
         :param timeout: Connection timeout in seconds
@@ -33,7 +33,7 @@ class NetworkScanner:
         """
         self._port_range = port_range
         self._timeout = timeout
-        self._subnet = subnet
+        self._ip_range = ip_range
         self._connector = BankConnector(timeout)
         self._security = security
 
@@ -45,13 +45,24 @@ class NetworkScanner:
         """
         banks = []
 
-        ips_to_scan = [f"{self._subnet}.{i}" for i in range(1, 255)]
+        try:
+            start_parts = self._ip_range[0].split('.')
+            end_parts = self._ip_range[1].split('.')
+
+            subnet_base = ".".join(start_parts[:3])
+            start_num = int(start_parts[3])
+            end_num = int(end_parts[3])
+
+            ips_to_scan = [f"{subnet_base}.{i}" for i in range(start_num, end_num + 1)]
+        except (IndexError, ValueError) as e:
+            log.error(f"Error parsing IP range {self._ip_range}: {e}")
+            return []
 
         ports_to_scan = range(self._port_range[0], self._port_range[1] + 1)
 
         targets = [(ip, port) for ip in ips_to_scan for port in ports_to_scan]
 
-        log.info(f"Scanning {len(targets)} targets in subnet {self._subnet}.0/24")
+        log.info(f"Scanning {len(targets)} targets from {self._ip_range[0]} to {self._ip_range[1]}")
 
         with ThreadPoolExecutor(max_workers=50) as executor:
             futures = {
