@@ -1,3 +1,9 @@
+## [0.0.11] - 26. 1. 2026 - Jakub Šrámek
+
+### Changed
+- Refactored NetworkScanner to support flexible IP address ranges.
+- Updated config.json structure and validation to support dynamic network scanning.
+
 ## [0.0.10] - 25. 1. 2026 - Martin Pop
 
 ### Added
