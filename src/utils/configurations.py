@@ -66,7 +66,10 @@ class ConfigurationManager:
             "max_bad_commands",
             "ban_duration",
             "monitoring_host",
-            "monitoring_port"
+            "monitoring_port",
+            "network_scan_port_range",
+            "network_scan_ip_range",
+            "network_timeout"
         ]
 
         missing_keys = [key for key in required_keys if key not in config]
@@ -164,10 +167,6 @@ class ConfigurationManager:
         if start_p > end_p:
             raise InvalidConfiguration("Scan port start cannot be higher than end")
 
-        subnet = config["network_scan_subnet"]
-        if not isinstance(subnet, str) or subnet.count('.') != 2:
-            raise InvalidConfiguration("network_scan_subnet must be in format 'X.Y.Z' ")
-
         if not isinstance(config["network_timeout"], (int, float)):
             raise InvalidConfiguration(
                 f"network_timeout must be a number. Found: {type(config['network_timeout']).__name__}")
@@ -177,6 +176,26 @@ class ConfigurationManager:
 
         if config["network_timeout"] > 15:
             raise InvalidConfiguration(f"network_timeout cant be bigger than 15. Found: {config['network_timeout']}")
+
+        ip_range = config["network_scan_ip_range"]
+        if not isinstance(ip_range, list) or len(ip_range) != 2:
+            raise InvalidConfiguration("network_scan_ip_range must be a list of two IP strings ['start_ip', 'end_ip']")
+
+        try:
+            start_ip = ipaddress.IPv4Address(ip_range[0])
+            end_ip = ipaddress.IPv4Address(ip_range[1])
+
+            start_parts = ip_range[0].split('.')
+            end_parts = ip_range[1].split('.')
+
+            if start_parts[:3] != end_parts[:3]:
+                raise InvalidConfiguration("Scan IP range must be within the same subnet (first 3 octets must match)")
+
+            if int(start_ip) > int(end_ip):
+                raise InvalidConfiguration("Scan IP range start cannot be higher than end")
+
+        except ValueError:
+            raise InvalidConfiguration("network_scan_ip_range must contain valid IPv4 addresses")
 
         log.info("Configuration validation passed")
 
