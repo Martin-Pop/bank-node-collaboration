@@ -89,6 +89,9 @@ class AccountDepositCommand(BaseCommand[StorageContext]):
         try:
             self._value = int(value)
 
+            if self._value <= 0:
+                raise ValueError("Amount must be positive")
+
             account, _ = parse_address(account_address)
             if account:
                 self._account_number = account
@@ -116,6 +119,9 @@ class AccountWithdrawCommand(BaseCommand[StorageContext]):
         super().__init__(code, context)
         try:
             self._value = int(value)
+
+            if self._value <= 0:
+                raise ValueError("Amount must be positive")
 
             account, _ = parse_address(account_address)
             if account:
