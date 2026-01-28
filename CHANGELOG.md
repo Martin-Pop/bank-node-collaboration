@@ -1,3 +1,8 @@
+## [0.0.12] - 28. 1. 2026 - Martin Pop
+
+### Fixed
+- Account remove command not working as intended.
+
 ## [0.0.11] - 26. 1. 2026 - Jakub Šrámek
 
 ### Changed
