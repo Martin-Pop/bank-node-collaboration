@@ -1,6 +1,6 @@
 {
-  "host": "10.0.0.0",
-  "port" : 8080,
+  "host": "10.2.7.x",
+  "port" : 65527,
   "storage_path": "storage.db",
   "storage_timeout": 2.5,
   "bank_workers": 2,
@@ -10,7 +10,7 @@
   "ban_duration": 300,
   "monitoring_host": "127.0.0.1",
   "monitoring_port": 8090,
-  "network_scan_port_range": [8080, 8090],
-  "network_scan_ip_range": ["10.0.0.1", "10.0.0.2"],
+  "network_scan_port_range": [65525, 65535],
+  "network_scan_ip_range": ["10.2.7.x", "10.2.7.x"],
   "network_timeout": 2
 }

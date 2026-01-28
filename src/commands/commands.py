@@ -69,9 +69,17 @@ class RemoveAccountCommand(BaseCommand[StorageContext]):
     Command to remove an account
     """
 
-    def __init__(self, code: str, context: StorageContext, account_number: str):
+    def __init__(self, code: str, context: StorageContext, account_address: str):
         super().__init__(code, context)
-        self._account_number = account_number
+        try:
+            account, _ = parse_address(account_address)
+            if account:
+                self._account_number = account
+            else:
+                raise ValueError
+        except ValueError:
+            self._value = None
+            self._account_number = None
 
     def execute(self) -> str:
         message = self._context.storage.remove_account(self._account_number)
